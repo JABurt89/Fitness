@@ -78,16 +78,16 @@ export default function BeginWorkout() {
 
   const createHistoricalLog = useMutation({
     mutationFn: async (data: { exercise: string, weight: number, sets: number, reps: number }) => {
-      const oneRM = (data.weight * (1 + (data.reps / 30)));
+      const oneRM = Number(data.weight * (1 + (data.reps / 30)));
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
       const logData = {
         date: yesterday.toISOString(),
         exercise: data.exercise,
-        completedSets: data.sets,
-        targetReps: data.reps,
-        weight: data.weight,
+        completedSets: Number(data.sets),
+        targetReps: Number(data.reps),
+        weight: Number(data.weight),
         failedRep: 0,
         calculatedOneRM: oneRM
       };
