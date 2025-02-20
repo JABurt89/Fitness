@@ -39,17 +39,15 @@ export default function WorkoutDays() {
 
   const reorderWorkouts = useMutation({
     mutationFn: async (items: WorkoutDay[]) => {
-      // Ensure IDs are numbers
+      // Ensure IDs are numbers and create updates array
       const updates = items.map((workout, index) => ({
         id: Number(workout.id),
         displayOrder: index
       }));
 
       console.log('Reorder mutation payload:', {
-        items,
         updates,
-        workoutIds: updates.map(u => u.id),
-        originalIds: items.map(i => i.id)
+        workoutIds: updates.map(u => u.id)
       });
 
       await apiRequest('PATCH', '/api/workout-days/reorder', {
@@ -72,26 +70,20 @@ export default function WorkoutDays() {
 
   const handleDragEnd = (result: any) => {
     if (!result.destination || !workoutDays) {
-      console.log('Invalid drag result:', result);
       return;
     }
-
-    console.log('Drag end result:', {
-      source: result.source,
-      destination: result.destination,
-      workoutDays: workoutDays.map(w => ({ id: w.id, name: w.dayName }))
-    });
 
     const items = Array.from(workoutDays);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    console.log('Reordered items:', {
-      items: items.map(i => ({ id: i.id, name: i.dayName })),
-      reorderedItem: { id: reorderedItem.id, name: reorderedItem.dayName }
-    });
+    // Ensure all IDs are numbers before mutation
+    const validItems = items.map(item => ({
+      ...item,
+      id: Number(item.id)
+    }));
 
-    reorderWorkouts.mutate(items);
+    reorderWorkouts.mutate(validItems);
   };
 
   if (loadingDays || loadingExercises) return <div>Loading...</div>;

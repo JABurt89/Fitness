@@ -110,63 +110,41 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Storage reorder updates:', updates);
 
-      // Get all workout days first
+      // Get all workout days and ensure we have them in memory
       const allWorkouts = await db.select().from(workoutDays);
-      console.log('Current workouts:', {
-        allWorkouts: allWorkouts.map(w => ({ 
-          id: w.id, 
-          name: w.dayName,
-          idType: typeof w.id,
-          rawId: w.id.toString(),
-          rawIdType: typeof w.id.toString()
-        })),
-        updateIds: updates.map(u => ({ 
-          id: u.id, 
-          idType: typeof u.id 
-        }))
-      });
 
-      // Create a map with string keys for consistent comparison
+      // Create a map of workout IDs to their full objects, using number keys
       const workoutMap = new Map(
-        allWorkouts.map(w => [String(w.id), w])
+        allWorkouts.map(w => [w.id, w])
       );
 
-      // Verify all workouts exist using string comparison
+      // Verify all workouts exist before making any updates
       for (const update of updates) {
-        const updateIdStr = String(update.id);
-        if (!workoutMap.has(updateIdStr)) {
-          console.error(`Workout day not found:`, {
+        if (!workoutMap.has(update.id)) {
+          console.error('Workout day not found:', {
             updateId: update.id,
             updateIdType: typeof update.id,
-            updateIdStr: updateIdStr,
             availableIds: Array.from(workoutMap.keys()),
-            workoutMapSize: workoutMap.size,
-            allWorkoutIds: allWorkouts.map(w => w.id)
+            workoutMapSize: workoutMap.size
           });
-          throw new Error(`Workout day with id ${update.id} not found`);
+          throw new Error(`Workout day not found: ${update.id}`);
         }
       }
 
-      // Update each workout's display order
+      // Perform all updates in sequence
       for (const update of updates) {
-        console.log(`Updating workout ${update.id} to order ${update.displayOrder}`, {
-          updateId: update.id,
-          updateIdType: typeof update.id
-        });
-
         await db
           .update(workoutDays)
           .set({ displayOrder: update.displayOrder })
-          // Convert string ID back to number for the database query
-          .where(eq(workoutDays.id, Number(update.id)));
+          .where(eq(workoutDays.id, update.id));
       }
 
+      // Verify the updates
       const verifyWorkouts = await db.select().from(workoutDays);
-      console.log('Workouts after update:', verifyWorkouts.map(w => ({
+      console.log('Workouts after reorder:', verifyWorkouts.map(w => ({
         id: w.id,
         name: w.dayName,
-        displayOrder: w.displayOrder,
-        idType: typeof w.id
+        displayOrder: w.displayOrder
       })));
     } catch (error) {
       console.error('Error in reorderWorkoutDays:', error);
