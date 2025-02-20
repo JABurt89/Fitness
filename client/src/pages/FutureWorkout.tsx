@@ -43,7 +43,11 @@ export default function FutureWorkout() {
 
     const exerciseLogs = workoutLogs
       ?.filter((log) => log.exercise === selectedExercise.name)
-      .slice(-5);
+      .slice(-5)
+      .map(log => ({
+        ...log,
+        calculatedOneRM: Number(log.calculatedOneRM)
+      }));
 
     if (!exerciseLogs?.length && !customOneRM) {
       return;
@@ -61,7 +65,12 @@ export default function FutureWorkout() {
       return;
     }
 
-    const newSuggestions = generateWorkoutSuggestions(currentOneRM, selectedExercise);
+    const exerciseWithNumberWeight = {
+      ...selectedExercise,
+      weightIncrement: Number(selectedExercise.weightIncrement)
+    };
+
+    const newSuggestions = generateWorkoutSuggestions(currentOneRM, exerciseWithNumberWeight);
     setSuggestions(newSuggestions);
   };
 
