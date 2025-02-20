@@ -21,22 +21,27 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
 
   // Initialize with one set if no suggestion is provided
   useEffect(() => {
-    const initialSets = suggestion
-      ? Array(suggestion.sets + 1).fill({ completed: false })
-      : [{ completed: false }];
+    const initialSets = [{ completed: false }];  // Always start with one set
     setSets(initialSets);
-  }, [suggestion?.sets]);
+  }, []);
 
   const logWorkout = useMutation({
     mutationFn: async (log: Omit<WorkoutLog, "id" | "date">) => {
-      return await apiRequest('POST', '/api/workout-logs', {
-        ...log,
-        completedSets: log.completedSets.toString(),
-        targetReps: log.targetReps.toString(),
-        weight: log.weight.toString(),
-        failedRep: log.failedRep.toString(),
-        calculatedOneRM: log.calculatedOneRM.toString()
-      });
+      console.log('Attempting to log workout with data:', log);
+      try {
+        const response = await apiRequest('POST', '/api/workout-logs', {
+          ...log,
+          completedSets: log.completedSets.toString(),
+          targetReps: log.targetReps.toString(),
+          weight: log.weight.toString(),
+          failedRep: log.failedRep.toString(),
+          calculatedOneRM: log.calculatedOneRM.toString()
+        });
+        return response;
+      } catch (error) {
+        console.error('Mutation error details:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-logs'] });
@@ -44,7 +49,11 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
       onComplete();
     },
     onError: (error) => {
-      console.error('Workout log error:', error);
+      console.error('Workout log error details:', {
+        error,
+        message: error instanceof Error ? error.message : "Unknown error",
+        response: error instanceof Error ? (error as any).response?.data : undefined
+      });
       toast({
         title: "Failed to log workout",
         description: error instanceof Error ? error.message : "Unknown error",
@@ -72,6 +81,15 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
   const handleSubmit = () => {
     // Only count completed sets
     const completedSets = sets.filter(set => set.completed).length;
+
+    if (completedSets === 0) {
+      toast({
+        title: "No sets completed",
+        description: "Please complete at least one set before logging the workout",
+        variant: "destructive"
+      });
+      return;
+    }
 
     // Get failed rep from the last incomplete set if any
     const failedRep = sets.find(set => !set.completed)?.failedRep ?? 0;
