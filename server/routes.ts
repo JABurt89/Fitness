@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { exerciseSchema, workoutDaySchema, workoutLogSchema, weightLogSchema } from "@shared/schema";
 import { z } from "zod";
-import {logger} from './logger';
+import { logger } from "./logger";  // Fix the import by using the correct path
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add route path logging middleware
@@ -223,6 +223,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requestBody: req.body
       });
       res.status(500).json({ error: "Failed to create workout log" });
+    }
+  });
+
+  // Add delete workout log route
+  app.delete("/api/workout-logs/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    logger.info(`DELETE /api/workout-logs/${id}`);
+    try {
+      await storage.deleteWorkoutLog(id);
+      res.status(204).send();
+    } catch (error) {
+      logger.error('Error deleting workout log:', error);
+      res.status(500).json({ error: "Failed to delete workout log" });
     }
   });
 

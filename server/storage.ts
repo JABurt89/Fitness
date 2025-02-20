@@ -35,6 +35,7 @@ export interface IStorage {
   getAllWorkoutLogs(): Promise<WorkoutLog[]>;
   getWorkoutLogsByExercise(exerciseName: string): Promise<WorkoutLog[]>;
   createWorkoutLog(workoutLog: InsertWorkoutLog): Promise<WorkoutLog>;
+  deleteWorkoutLog(id: number): Promise<void>; // Added delete method
 
   // Weight log operations
   getAllWeightLogs(): Promise<WeightLog[]>;
@@ -157,6 +158,10 @@ export class DatabaseStorage implements IStorage {
 
     const [created] = await db.insert(workoutLogs).values(dbWorkoutLog).returning();
     return created;
+  }
+
+  async deleteWorkoutLog(id: number): Promise<void> { // Added method implementation
+    await db.delete(workoutLogs).where(eq(workoutLogs.id, id));
   }
 
   // Weight log operations

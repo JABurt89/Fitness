@@ -50,13 +50,14 @@ export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays);
 
 // Separate validation for workout logs - only ensure non-negative numbers
-export const workoutLogSchema = createInsertSchema(workoutLogs, {
-  completedSets: z.number().min(0, "Number of sets cannot be negative"),
-  failedRep: z.number().min(0, "Failed rep must be 0 or positive"),
-  targetReps: z.number().min(1, "Target reps must be at least 1"),
-  weight: z.number().min(0, "Weight cannot be negative"),
-  calculatedOneRM: z.number().min(0, "1RM cannot be negative"),
-  date: z.date().or(z.string().transform(val => new Date(val))),
+export const workoutLogSchema = z.object({
+  exercise: z.string(),
+  completedSets: z.number().min(0),
+  failedRep: z.number().min(0),
+  targetReps: z.number().min(1),
+  weight: z.number().min(0),
+  calculatedOneRM: z.number().min(0),
+  date: z.date().or(z.string().transform(val => new Date(val))).optional(),
 });
 
 export const setLogSchema = createInsertSchema(setLogs);
