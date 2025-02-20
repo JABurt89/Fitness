@@ -83,49 +83,57 @@ export default function BeginWorkout() {
       yesterday.setDate(yesterday.getDate() - 1);
 
       const logData = {
-        date: yesterday.toISOString(),
         exercise: data.exercise,
         completedSets: Number(data.sets),
         targetReps: Number(data.reps),
         weight: Number(data.weight),
         failedRep: 0,
-        calculatedOneRM: oneRM
+        calculatedOneRM: oneRM,
+        date: yesterday.toISOString()
       };
 
-      console.log('Submitting workout log:', logData);
+      console.log('Submitting workout log with types:', {
+        data: logData,
+        types: {
+          completedSets: typeof logData.completedSets,
+          targetReps: typeof logData.targetReps,
+          weight: typeof logData.weight,
+          failedRep: typeof logData.failedRep,
+          calculatedOneRM: typeof logData.calculatedOneRM
+        }
+      });
+
       return await apiRequest('POST', '/api/workout-logs', logData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-logs'] });
       toast({ title: "Previous workout logged successfully" });
 
-      setTimeout(() => {
-        if (pendingWorkout) {
-          const weight = Number(previousWorkoutForm.getValues().weight);
-          const reps = Number(previousWorkoutForm.getValues().reps);
-          const currentOneRM = weight * (1 + (reps / 30));
+      if (pendingWorkout) {
+        const weight = Number(previousWorkoutForm.getValues().weight);
+        const reps = Number(previousWorkoutForm.getValues().reps);
+        const currentOneRM = weight * (1 + (reps / 30));
 
-          const newSuggestions = generateWorkoutSuggestions(currentOneRM, {
-            setsRange: pendingWorkout.exercise.setsRange,
-            repsRange: pendingWorkout.exercise.repsRange,
-            weightIncrement: parseFloat(pendingWorkout.exercise.weightIncrement),
-            startingWeightType: "Barbell",
-            customStartingWeight: undefined
+        const newSuggestions = generateWorkoutSuggestions(currentOneRM, {
+          setsRange: pendingWorkout.exercise.setsRange,
+          repsRange: pendingWorkout.exercise.repsRange,
+          weightIncrement: parseFloat(pendingWorkout.exercise.weightIncrement),
+          startingWeightType: "Barbell",
+          customStartingWeight: undefined
+        });
+
+        if (newSuggestions.length > 0) {
+          setSuggestions(newSuggestions.slice(0, 10));
+          setShowSuggestions(true);
+          setShowPreviousWorkoutDialog(false);
+        } else {
+          toast({ 
+            title: "Error generating suggestions",
+            description: "Could not generate workout suggestions",
+            variant: "destructive"
           });
-
-          if (newSuggestions.length > 0) {
-            setSuggestions(newSuggestions.slice(0, 10));
-            setShowSuggestions(true);
-            setShowPreviousWorkoutDialog(false);
-          } else {
-            toast({ 
-              title: "Error generating suggestions",
-              description: "Could not generate workout suggestions",
-              variant: "destructive"
-            });
-          }
         }
-      }, 100);
+      }
     },
     onError: (error: any) => {
       console.error('Failed to log workout:', error);

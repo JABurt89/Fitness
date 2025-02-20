@@ -177,14 +177,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/workout-logs", async (req, res) => {
-    logger.info(`POST /api/workout-logs`, {payload: req.body});
-    const result = workoutLogSchema.safeParse(req.body);
-    if (!result.success) {
-      res.status(400).json({ error: result.error });
-      return;
+    logger.info(`POST /api/workout-logs`, {
+      payload: req.body,
+      types: {
+        completedSets: typeof req.body.completedSets,
+        targetReps: typeof req.body.targetReps,
+        weight: typeof req.body.weight,
+        failedRep: typeof req.body.failedRep,
+        calculatedOneRM: typeof req.body.calculatedOneRM
+      }
+    });
+
+    try {
+      const result = workoutLogSchema.safeParse(req.body);
+      if (!result.success) {
+        logger.error('Workout log validation error:', {
+          error: result.error,
+          receivedData: req.body
+        });
+        res.status(400).json({ error: result.error });
+        return;
+      }
+
+      const log = await storage.createWorkoutLog({
+        ...result.data,
+        date: result.data.date || new Date(),
+      });
+
+      logger.info('Successfully created workout log:', log);
+      res.json(log);
+    } catch (error) {
+      logger.error('Error creating workout log:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        requestBody: req.body
+      });
+      res.status(500).json({ error: "Failed to create workout log" });
     }
-    const log = await storage.createWorkoutLog(result.data);
-    res.json(log);
   });
 
   // Weight log routes
