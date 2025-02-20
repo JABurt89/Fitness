@@ -2,6 +2,7 @@ import { pgTable, text, serial, numeric, timestamp, jsonb, integer } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Database table definitions remain unchanged
 export const exercises = pgTable("exercises", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -45,6 +46,7 @@ export const weightLog = pgTable("weight_log", {
   weight: numeric("weight").notNull(),
 });
 
+// Schema definitions with detailed validation logging
 export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays);
 
