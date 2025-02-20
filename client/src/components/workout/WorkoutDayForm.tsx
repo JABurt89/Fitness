@@ -35,7 +35,7 @@ export default function WorkoutDayForm({
   const form = useForm<InsertWorkoutDay>({
     resolver: zodResolver(workoutDaySchema),
     defaultValues: workoutDay || {
-      dayName: `Day #${nextDayNumber}`,
+      dayName: workoutDay?.dayName || `Day #${nextDayNumber}`,
       exercises: [],
       displayOrder: nextDayNumber - 1,
     },
@@ -65,19 +65,24 @@ export default function WorkoutDayForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="dayName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Day Name</FormLabel>
-              <FormControl>
-                <Input {...field} readOnly />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-2">
+          <div className="text-sm text-muted-foreground">
+            Day #{nextDayNumber}
+          </div>
+          <FormField
+            control={form.control}
+            name="dayName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Workout Name</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="e.g., Shoulders, Legs, etc." />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

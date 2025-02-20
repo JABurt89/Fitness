@@ -39,7 +39,10 @@ export default function WorkoutDays() {
 
   const reorderWorkouts = useMutation({
     mutationFn: async (reorderedWorkouts: WorkoutDay[]) => {
-      await apiRequest('PATCH', '/api/workout-days/reorder', { workouts: reorderedWorkouts });
+      await apiRequest('PATCH', '/api/workout-days/reorder', { workouts: reorderedWorkouts.map(w => ({
+        id: w.id,
+        displayOrder: w.displayOrder
+      })) });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
@@ -61,7 +64,6 @@ export default function WorkoutDays() {
     const updatedWorkouts = items.map((workout, index) => ({
       ...workout,
       displayOrder: index,
-      dayName: `Day #${index + 1}`,
     }));
 
     reorderWorkouts.mutate(updatedWorkouts);
@@ -119,7 +121,10 @@ export default function WorkoutDays() {
                             <div {...provided.dragHandleProps}>
                               <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
                             </div>
-                            <h3 className="text-lg font-semibold">{`Day #${index + 1}`}</h3>
+                            <div>
+                              <div className="text-sm text-muted-foreground">Day #{index + 1}</div>
+                              <h3 className="text-lg font-semibold">{day.dayName}</h3>
+                            </div>
                           </div>
                           <div className="flex gap-2">
                             <Button
