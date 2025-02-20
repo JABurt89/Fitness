@@ -32,7 +32,6 @@ const STARTING_WEIGHTS = {
 
 /**
  * Generates workout suggestions based on current 1RM and exercise parameters
- * Matches the logic from the original CLI implementation
  */
 export function generateWorkoutSuggestions(
   currentOneRM: number,
@@ -54,6 +53,16 @@ export function generateWorkoutSuggestions(
   const startWeight = Math.max(currentOneRM * 0.7, minWeight);  // Start at 70% of 1RM or minimum weight
   const endWeight = currentOneRM * 1.3;    // Go up to 130% of 1RM
   const results: WorkoutSuggestion[] = [];
+
+  console.log('Calculation parameters:', {
+    currentOneRM,
+    minWeight,
+    startWeight,
+    endWeight,
+    setsRange: exercise.setsRange,
+    repsRange: exercise.repsRange,
+    weightIncrement: exercise.weightIncrement
+  });
 
   // Generate all possible combinations
   for (

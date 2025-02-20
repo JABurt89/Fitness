@@ -67,15 +67,17 @@ export default function FutureWorkout() {
       return;
     }
 
+    // Set default starting weight type if not present
     const exerciseForCalculation = {
       setsRange: selectedExercise.setsRange,
       repsRange: selectedExercise.repsRange,
       weightIncrement: parseFloat(selectedExercise.weightIncrement),
-      startingWeightType: selectedExercise.startingWeightType,
+      startingWeightType: selectedExercise.startingWeightType || "Barbell",
       customStartingWeight: selectedExercise.customStartingWeight
     };
 
     console.log('Exercise for calculation:', exerciseForCalculation);
+    console.log('Current 1RM:', currentOneRM);
 
     const newSuggestions = generateWorkoutSuggestions(currentOneRM, exerciseForCalculation);
     console.log('Generated suggestions:', newSuggestions);
