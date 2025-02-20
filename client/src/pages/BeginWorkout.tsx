@@ -11,7 +11,6 @@ import { generateWorkoutSuggestions, calculateOneRMTrend } from "@/lib/workoutCa
 import type { WorkoutSuggestion } from "@/lib/workoutCalculator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -286,57 +285,6 @@ export default function BeginWorkout() {
           suggestion={workoutSuggestion}
           onComplete={handleExerciseComplete}
         />
-
-        <Dialog open={showPreviousWorkoutDialog} onOpenChange={setShowPreviousWorkoutDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Enter Your Last {currentExercise.name} Workout</DialogTitle>
-            </DialogHeader>
-            <Form {...previousWorkoutForm}>
-              <form onSubmit={previousWorkoutForm.handleSubmit(handlePreviousWorkoutSubmit)} className="space-y-4">
-                <FormField
-                  control={previousWorkoutForm.control}
-                  name="weight"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Weight (kg)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.5" {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={previousWorkoutForm.control}
-                  name="sets"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Sets Completed</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={previousWorkoutForm.control}
-                  name="reps"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Reps per Set</FormLabel>
-                      <FormControl>
-                        <Input type="number" {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full">
-                  Start Workout
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
@@ -392,7 +340,9 @@ export default function BeginWorkout() {
       <Dialog open={showPreviousWorkoutDialog} onOpenChange={setShowPreviousWorkoutDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Enter Your Last {pendingWorkout?.exercise.name} Workout</DialogTitle>
+            <DialogTitle>
+              Enter Your Last {pendingWorkout?.exercise?.name} Workout
+            </DialogTitle>
           </DialogHeader>
           <Form {...previousWorkoutForm}>
             <form onSubmit={previousWorkoutForm.handleSubmit(handlePreviousWorkoutSubmit)} className="space-y-4">
