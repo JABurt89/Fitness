@@ -13,7 +13,7 @@ import {
   weightLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, in_ } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Exercise operations
@@ -107,35 +107,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
-    try {
-      // First verify all workout days exist
-      const workoutIds = updates.map(u => u.id);
-      const existingWorkouts = await db
-        .select()
-        .from(workoutDays)
-        .where(workoutDays.id.in(workoutIds));
-
-      // Verify all workout days exist
-      const missingWorkouts = workoutIds.filter(id => 
-        !existingWorkouts.some(workout => workout.id === id)
-      );
-
-      if (missingWorkouts.length > 0) {
-        throw new Error(`Workout days with ids ${missingWorkouts.join(', ')} not found`);
+    for (const update of updates) {
+      const exists = await this.getWorkoutDay(update.id);
+      if (!exists) {
+        throw new Error(`Workout day with id ${update.id} not found`);
       }
 
-      // If we get here, all workouts exist, so perform the updates
-      await Promise.all(
-        updates.map(update =>
-          db
-            .update(workoutDays)
-            .set({ displayOrder: update.displayOrder })
-            .where(eq(workoutDays.id, update.id))
-        )
-      );
-    } catch (error) {
-      console.error('Error in reorderWorkoutDays:', error);
-      throw error;
+      await db
+        .update(workoutDays)
+        .set({ displayOrder: update.displayOrder })
+        .where(eq(workoutDays.id, update.id));
     }
   }
 

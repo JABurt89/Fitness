@@ -43,7 +43,13 @@ export default function WorkoutDays() {
         id: workout.id,
         displayOrder: index
       }));
-      await apiRequest('PATCH', '/api/workout-days/reorder', { workouts: updates });
+
+      try {
+        await apiRequest('PATCH', '/api/workout-days/reorder', { workouts: updates });
+      } catch (error) {
+        console.error('Reorder error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
@@ -51,7 +57,11 @@ export default function WorkoutDays() {
     },
     onError: (error) => {
       console.error('Reorder error:', error);
-      toast({ title: "Failed to update workout order", variant: "destructive" });
+      toast({ 
+        title: "Failed to update workout order",
+        description: "Please try again",
+        variant: "destructive" 
+      });
     }
   });
 
