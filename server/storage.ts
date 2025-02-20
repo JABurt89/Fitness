@@ -112,14 +112,20 @@ export class DatabaseStorage implements IStorage {
 
       // Get all workout days first
       const allWorkouts = await db.select().from(workoutDays);
-      console.log('Current workouts:', allWorkouts);
+      console.log('Current workouts:', {
+        allWorkouts: allWorkouts.map(w => ({ id: w.id, name: w.dayName })),
+        updateIds: updates.map(u => u.id)
+      });
 
       const workoutMap = new Map(allWorkouts.map(w => [w.id, w]));
 
       // Verify all workouts exist
       for (const update of updates) {
         if (!workoutMap.has(update.id)) {
-          console.error(`Workout day not found:`, update);
+          console.error(`Workout day not found:`, {
+            updateId: update.id,
+            availableIds: Array.from(workoutMap.keys())
+          });
           throw new Error(`Workout day with id ${update.id} not found`);
         }
       }
@@ -134,7 +140,11 @@ export class DatabaseStorage implements IStorage {
       }
 
       const verifyWorkouts = await db.select().from(workoutDays);
-      console.log('Workouts after update:', verifyWorkouts);
+      console.log('Workouts after update:', verifyWorkouts.map(w => ({
+        id: w.id,
+        name: w.dayName,
+        displayOrder: w.displayOrder
+      })));
     } catch (error) {
       console.error('Error in reorderWorkoutDays:', error);
       throw error;

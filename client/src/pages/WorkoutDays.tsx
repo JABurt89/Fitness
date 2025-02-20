@@ -47,7 +47,9 @@ export default function WorkoutDays() {
 
       console.log('Reorder mutation payload:', {
         items,
-        updates
+        updates,
+        workoutIds: updates.map(u => u.id),
+        originalIds: items.map(i => i.id)
       });
 
       await apiRequest('PATCH', '/api/workout-days/reorder', {
@@ -77,14 +79,18 @@ export default function WorkoutDays() {
     console.log('Drag end result:', {
       source: result.source,
       destination: result.destination,
-      workoutDays
+      workoutDays: workoutDays.map(w => ({ id: w.id, name: w.dayName }))
     });
 
     const items = Array.from(workoutDays);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    console.log('Reordered items:', items);
+    console.log('Reordered items:', {
+      items: items.map(i => ({ id: i.id, name: i.dayName })),
+      reorderedItem: { id: reorderedItem.id, name: reorderedItem.dayName }
+    });
+
     reorderWorkouts.mutate(items);
   };
 
