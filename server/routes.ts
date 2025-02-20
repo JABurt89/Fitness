@@ -3,18 +3,18 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { exerciseSchema, workoutDaySchema, workoutLogSchema, weightLogSchema } from "@shared/schema";
 import { z } from "zod";
-import {logger} from './logger'; // Added logger import
+import {logger} from './logger';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Exercise routes
   app.get("/api/exercises", async (req, res) => {
-    logger.info(`GET /api/exercises`); // Added log
+    logger.info(`GET /api/exercises`);
     const exercises = await storage.getAllExercises();
     res.json(exercises);
   });
 
   app.post("/api/exercises", async (req, res) => {
-    logger.info(`POST /api/exercises`, {payload: req.body}); // Added log
+    logger.info(`POST /api/exercises`, {payload: req.body});
     const result = exerciseSchema.safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: result.error });
@@ -26,7 +26,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/exercises/:id", async (req, res) => {
     const id = parseInt(req.params.id);
-    logger.info(`PATCH /api/exercises/${id}`, {payload: req.body}); // Added log
+    logger.info(`PATCH /api/exercises/${id}`, {payload: req.body});
     const result = exerciseSchema.partial().safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: result.error });
@@ -42,20 +42,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/exercises/:id", async (req, res) => {
     const id = parseInt(req.params.id);
-    logger.info(`DELETE /api/exercises/${id}`); // Added log
+    logger.info(`DELETE /api/exercises/${id}`);
     await storage.deleteExercise(id);
     res.status(204).send();
   });
 
   // Workout day routes
   app.get("/api/workout-days", async (req, res) => {
-    logger.info(`GET /api/workout-days`); // Added log
+    logger.info(`GET /api/workout-days`);
     const workoutDays = await storage.getAllWorkoutDays();
     res.json(workoutDays);
   });
 
   app.post("/api/workout-days", async (req, res) => {
-    logger.info(`POST /api/workout-days`, {payload: req.body}); // Added log
+    logger.info(`POST /api/workout-days`, {payload: req.body});
     const result = workoutDaySchema.safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: result.error });
@@ -67,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/workout-days/:id", async (req, res) => {
     const id = parseInt(req.params.id);
-    logger.info(`PATCH /api/workout-days/${id}`, {payload: req.body}); // Added log
+    logger.info(`PATCH /api/workout-days/${id}`, {payload: req.body});
     const result = workoutDaySchema.partial().safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: result.error });
@@ -82,10 +82,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/workout-days/reorder", async (req, res) => {
-    logger.info(`PATCH /api/workout-days/reorder`, {payload: req.body}); // Added log
-    console.log('Reorder request:', {
+    logger.info('Reorder request received:', {
+      path: req.path,
       body: req.body,
-      workouts: req.body.workouts
+      workouts: req.body.workouts,
+      types: req.body.workouts?.map((w: any) => ({
+        id: w.id,
+        idType: typeof w.id,
+        displayOrder: w.displayOrder,
+        displayOrderType: typeof w.displayOrder
+      }))
     });
 
     const reorderSchema = z.object({
@@ -97,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const result = reorderSchema.safeParse(req.body);
     if (!result.success) {
-      console.error('Reorder validation error:', result.error);
+      logger.error('Reorder validation error:', result.error);
       res.status(400).json({ error: result.error });
       return;
     }
@@ -106,7 +112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.reorderWorkoutDays(result.data.workouts);
       const updatedWorkouts = await storage.getAllWorkoutDays();
 
-      console.log('Reorder successful:', {
+      logger.info('Reorder successful:', {
         updates: result.data.workouts,
         currentState: updatedWorkouts.map(w => ({
           id: w.id,
@@ -117,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(updatedWorkouts);
     } catch (error) {
-      console.error('Reorder error:', {
+      logger.error('Reorder error:', {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
         requestBody: req.body
@@ -137,14 +143,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/workout-days/:id", async (req, res) => {
     const id = parseInt(req.params.id);
-    logger.info(`DELETE /api/workout-days/${id}`); // Added log
+    logger.info(`DELETE /api/workout-days/${id}`);
     await storage.deleteWorkoutDay(id);
     res.status(204).send();
   });
 
   // Workout log routes
   app.get("/api/workout-logs", async (req, res) => {
-    logger.info(`GET /api/workout-logs`, {query: req.query}); // Added log
+    logger.info(`GET /api/workout-logs`, {query: req.query});
     const { exercise } = req.query;
     if (exercise && typeof exercise === 'string') {
       const logs = await storage.getWorkoutLogsByExercise(exercise);
@@ -156,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/workout-logs", async (req, res) => {
-    logger.info(`POST /api/workout-logs`, {payload: req.body}); // Added log
+    logger.info(`POST /api/workout-logs`, {payload: req.body});
     const result = workoutLogSchema.safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: result.error });
@@ -168,13 +174,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Weight log routes
   app.get("/api/weight-logs", async (req, res) => {
-    logger.info(`GET /api/weight-logs`); // Added log
+    logger.info(`GET /api/weight-logs`);
     const logs = await storage.getAllWeightLogs();
     res.json(logs);
   });
 
   app.post("/api/weight-logs", async (req, res) => {
-    logger.info(`POST /api/weight-logs`, {payload: req.body}); // Added log
+    logger.info(`POST /api/weight-logs`, {payload: req.body});
     const result = weightLogSchema.safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: result.error });

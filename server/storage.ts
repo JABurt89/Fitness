@@ -119,62 +119,80 @@ export class DatabaseStorage implements IStorage {
 
   async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
     try {
-      // First verify all workout days exist using IN clause
       const workoutIds = updates.map(u => u.id);
-      console.log('Attempting to reorder workout days:', {
-        workoutIds,
+      console.log('Starting reorder operation:', {
         updates,
-        idTypes: workoutIds.map(id => ({ id, type: typeof id }))
+        workoutIds,
+        types: {
+          workoutIds: workoutIds.map(id => ({ id, type: typeof id })),
+          updateIds: updates.map(u => ({ id: u.id, type: typeof u.id }))
+        }
       });
 
-      // Get all workout days first to debug
+      // First get all workout days to verify state
       const allWorkoutDays = await db.select().from(workoutDays);
-      console.log('All workout days in database:', allWorkoutDays);
+      console.log('Current database state:', {
+        workoutDays: allWorkoutDays.map(w => ({
+          id: w.id,
+          name: w.dayName,
+          displayOrder: w.displayOrder,
+          idType: typeof w.id
+        }))
+      });
 
+      // Verify existence using separate queries for debugging
       const existingWorkouts = await db
         .select()
         .from(workoutDays)
         .where(inArray(workoutDays.id, workoutIds));
 
-      console.log('Found existing workouts:', existingWorkouts);
+      console.log('Found workouts for reordering:', {
+        found: existingWorkouts.map(w => ({
+          id: w.id,
+          name: w.dayName,
+          displayOrder: w.displayOrder,
+          idType: typeof w.id
+        })),
+        expectedIds: workoutIds
+      });
 
       if (existingWorkouts.length !== updates.length) {
         const existingIds = new Set(existingWorkouts.map(w => w.id));
         const missingIds = workoutIds.filter(id => !existingIds.has(id));
-        console.log('Missing workout days:', {
-          expected: workoutIds,
-          found: Array.from(existingIds),
-          missing: missingIds,
-          idTypes: {
-            workoutIds: workoutIds.map(id => typeof id),
-            existingIds: Array.from(existingIds).map(id => typeof id)
-          }
-        });
         throw new Error(`Workout days not found: ${missingIds.join(', ')}`);
       }
 
       // Perform updates in a transaction
       await db.transaction(async (tx) => {
         for (const update of updates) {
-          await tx
+          const result = await tx
             .update(workoutDays)
             .set({ displayOrder: update.displayOrder })
-            .where(eq(workoutDays.id, update.id));
+            .where(eq(workoutDays.id, update.id))
+            .returning();
+
+          console.log('Update result:', {
+            update,
+            result,
+            success: result.length > 0
+          });
         }
       });
 
-      // Log the final state for verification
-      const verifyWorkouts = await db.select().from(workoutDays);
-      console.log('Workouts after reorder:', verifyWorkouts.map(w => ({
-        id: w.id,
-        name: w.dayName,
-        displayOrder: w.displayOrder
-      })));
+      // Verify final state
+      const finalState = await db.select().from(workoutDays);
+      console.log('Final state after reorder:', 
+        finalState.map(w => ({
+          id: w.id,
+          name: w.dayName,
+          displayOrder: w.displayOrder
+        }))
+      );
     } catch (error) {
       console.error('Error in reorderWorkoutDays:', {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
-        updates
+        stack: error instanceof Error ? error.stack : undefined
       });
       throw error;
     }
