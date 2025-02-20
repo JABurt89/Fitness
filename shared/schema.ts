@@ -1,4 +1,4 @@
-import { pgTable, text, serial, numeric, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, numeric, timestamp, jsonb, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -15,6 +15,8 @@ export const workoutDays = pgTable("workout_days", {
   id: serial("id").primaryKey(),
   dayName: text("day_name").notNull(),
   exercises: jsonb("exercises").$type<string[]>().notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  lastCompleted: timestamp("last_completed"),
 });
 
 export const workoutLogs = pgTable("workout_logs", {
@@ -28,23 +30,37 @@ export const workoutLogs = pgTable("workout_logs", {
   calculatedOneRM: numeric("calculated_one_rm").notNull(),
 });
 
+export const setLogs = pgTable("set_logs", {
+  id: serial("id").primaryKey(),
+  workoutLogId: integer("workout_log_id").notNull(),
+  setNumber: integer("set_number").notNull(),
+  isSuccess: boolean("is_success").notNull(),
+  actualReps: integer("actual_reps"),
+  notes: text("notes"),
+});
+
 export const weightLog = pgTable("weight_log", {
   id: serial("id").primaryKey(),
   date: timestamp("date").notNull().defaultNow(),
   weight: numeric("weight").notNull(),
 });
 
+// Create insert schemas
 export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays);
 export const workoutLogSchema = createInsertSchema(workoutLogs);
+export const setLogSchema = createInsertSchema(setLogs);
 export const weightLogSchema = createInsertSchema(weightLog);
 
+// Export types
 export type Exercise = typeof exercises.$inferSelect;
 export type WorkoutDay = typeof workoutDays.$inferSelect;
 export type WorkoutLog = typeof workoutLogs.$inferSelect;
+export type SetLog = typeof setLogs.$inferSelect;
 export type WeightLog = typeof weightLog.$inferSelect;
 
 export type InsertExercise = z.infer<typeof exerciseSchema>;
 export type InsertWorkoutDay = z.infer<typeof workoutDaySchema>;
 export type InsertWorkoutLog = z.infer<typeof workoutLogSchema>;
+export type InsertSetLog = z.infer<typeof setLogSchema>;
 export type InsertWeightLog = z.infer<typeof weightLogSchema>;

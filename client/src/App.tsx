@@ -8,6 +8,7 @@ import Exercises from "@/pages/Exercises";
 import WorkoutDays from "@/pages/WorkoutDays";
 import WorkoutLog from "@/pages/WorkoutLog";
 import WeightTracker from "@/pages/WeightTracker";
+import BeginWorkout from "@/pages/BeginWorkout";
 import Sidebar from "@/components/layout/Sidebar";
 import FutureWorkout from "@/pages/FutureWorkout";
 
@@ -18,6 +19,7 @@ function Router() {
       <main className="flex-1 overflow-y-auto bg-background p-6">
         <Switch>
           <Route path="/" component={Dashboard} />
+          <Route path="/begin-workout" component={BeginWorkout} />
           <Route path="/exercises" component={Exercises} />
           <Route path="/workout-days" component={WorkoutDays} />
           <Route path="/workout-log" component={WorkoutLog} />
