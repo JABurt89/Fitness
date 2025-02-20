@@ -21,7 +21,8 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
 
   // Initialize sets based on suggestion
   useState(() => {
-    setSets(Array(suggestion.sets).fill({ completed: false }));
+    // Add one extra set for "Extra reps"
+    setSets(Array(suggestion.sets + 1).fill({ completed: false }));
   }, [suggestion.sets]);
 
   const logWorkout = useMutation({
@@ -45,16 +46,23 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
   };
 
   const handleSubmit = () => {
-    const completedSets = sets.filter(set => set.completed).length;
-    const failedRep = sets.find(set => !set.completed && set.failedRep)?.failedRep;
+    // Only count completed sets up to the target number (excluding extra set)
+    const completedSets = sets
+      .slice(0, suggestion.sets)
+      .filter(set => set.completed)
+      .length;
+
+    // Check the extra set for failed rep
+    const extraSet = sets[sets.length - 1];
+    const failedRep = extraSet.failedRep;
 
     logWorkout.mutate({
       exercise: exercise.name,
       weight: suggestion.weight,
       completedSets,
       targetReps: suggestion.reps,
-      failedRep: failedRep?.toString() ?? "0",
-      calculatedOneRM: suggestion.estimatedOneRM.toString()
+      failedRep: failedRep ?? 0,
+      calculatedOneRM: suggestion.estimatedOneRM
     });
   };
 
@@ -80,7 +88,7 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
                     onClick={() => handleSetCompletion(index, true)}
                   >
                     <Check className="w-4 h-4 mr-2" />
-                    Set {index + 1}
+                    {index === sets.length - 1 ? "Extra" : `Set ${index + 1}`}
                   </Button>
                   <Button
                     variant={!set.completed ? "destructive" : "outline"}
