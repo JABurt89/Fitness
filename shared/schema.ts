@@ -49,12 +49,35 @@ export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays);
 
 export const workoutLogSchema = z.object({
-  exercise: z.string(),
-  completedSets: z.number().int().nonnegative(),
-  failedRep: z.number().int().nonnegative(),
-  targetReps: z.number().int().positive(),
-  weight: z.number().nonnegative(),
-  calculatedOneRM: z.number().nonnegative(),
+  exercise: z.string().min(1, "Exercise name is required"),
+  completedSets: z.number()
+    .int("Completed sets must be an integer")
+    .nonnegative("Completed sets cannot be negative")
+    .refine(val => val >= 0, {
+      message: "Completed sets must be 0 or greater"
+    }),
+  failedRep: z.number()
+    .int("Failed rep must be an integer")
+    .nonnegative("Failed rep cannot be negative")
+    .refine(val => val >= 0, {
+      message: "Failed rep must be 0 or greater"
+    }),
+  targetReps: z.number()
+    .int("Target reps must be an integer")
+    .positive("Target reps must be greater than 0")
+    .refine(val => val > 0, {
+      message: "Target reps must be greater than 0"
+    }),
+  weight: z.number()
+    .nonnegative("Weight cannot be negative")
+    .refine(val => val >= 0, {
+      message: "Weight must be 0 or greater"
+    }),
+  calculatedOneRM: z.number()
+    .nonnegative("Calculated 1RM cannot be negative")
+    .refine(val => val >= 0, {
+      message: "Calculated 1RM must be 0 or greater"
+    }),
   date: z.date().or(z.string().transform(val => new Date(val))).optional(),
 }).transform(data => ({
   ...data,

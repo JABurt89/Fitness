@@ -49,7 +49,9 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
       });
       toast({
         title: "Failed to log workout",
-        description: error instanceof Error ? error.message : "Unknown error",
+        description: error instanceof Error 
+          ? `Error: ${error.message}` 
+          : "Unknown error occurred",
         variant: "destructive"
       });
     }
@@ -59,6 +61,13 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
     const newSets = [...sets];
     newSets[index] = { completed, failedRep };
     setSets(newSets);
+
+    console.log('Updated sets:', {
+      index,
+      completed,
+      failedRep,
+      newSets
+    });
   };
 
   const addSet = () => {
@@ -74,6 +83,7 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
   const handleSubmit = () => {
     // Only count completed sets
     const completedSets = sets.filter(set => set.completed).length;
+    console.log('Completed sets count:', completedSets);
 
     if (completedSets === 0) {
       toast({
@@ -93,7 +103,7 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
     const calculatedOneRM = suggestion?.estimatedOneRM ?? weight;
 
     // Log the data being sent
-    console.log('Submitting workout log:', {
+    console.log('Preparing workout data:', {
       exercise: exercise.name,
       weight,
       completedSets,
@@ -102,14 +112,18 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
       calculatedOneRM
     });
 
-    logWorkout.mutate({
+    const workoutData = {
       exercise: exercise.name,
       weight,
       completedSets,
       targetReps,
       failedRep,
       calculatedOneRM
-    });
+    };
+
+    console.log('Final workout data before mutation:', workoutData);
+
+    logWorkout.mutate(workoutData);
   };
 
   return (

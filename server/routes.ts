@@ -210,7 +210,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         res.status(400).json({ 
           error: result.error,
-          message: result.error.issues.map(issue => issue.message).join(', ')
+          message: result.error.issues.map(issue => issue.message).join(', '),
+          receivedData: data
         });
         return;
       }
@@ -225,7 +226,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: error instanceof Error ? error.message : 'Unknown error',
         requestBody: req.body
       });
-      res.status(500).json({ error: "Failed to create workout log" });
+      res.status(500).json({ 
+        error: "Failed to create workout log",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
