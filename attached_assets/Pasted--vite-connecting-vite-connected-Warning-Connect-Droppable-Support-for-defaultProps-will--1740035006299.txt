@@ -1,0 +1,44 @@
+[vite] connecting...
+[vite] connected.
+Warning: Connect(Droppable): Support for defaultProps will be removed from memo components in a future major release. Use JavaScript default parameters instead.
+    at Provider (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-beautiful-dnd.js?v=5078d99f:945:20)
+    at App (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-beautiful-dnd.js?v=5078d99f:7462:25)
+    at ErrorBoundary2 (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-beautiful-dnd.js?v=5078d99f:1959:35)
+    at DragDropContext (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-beautiful-dnd.js?v=5078d99f:7582:19)
+    at div
+    at WorkoutDays (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/src/pages/WorkoutDays.tsx:31:21)
+    at Route (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=5078d99f:323:16)
+    at Switch (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=5078d99f:379:17)
+    at main
+    at div
+    at Router
+    at QueryClientProvider (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=5078d99f:2805:3)
+    at App
+at Provider (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-beautiful-dnd.js?v=5078d99f:945:20)
+at App (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-beautiful-dnd.js?v=5078d99f:7462:25)
+at ErrorBoundary2 (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-beautiful-dnd.js?v=5078d99f:1959:35)
+at DragDropContext (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-beautiful-dnd.js?v=5078d99f:7582:19)
+at div
+at WorkoutDays (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/src/pages/WorkoutDays.tsx:31:21)
+at Route (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=5078d99f:323:16)
+at Switch (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=5078d99f:379:17)
+at main
+at div
+at Router
+at QueryClientProvider (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=5078d99f:2805:3)
+at App
+at t.value (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:17465)
+at new t (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:12630)
+at t.value (https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:32766)
+at https://9f8687cc-fa04-45e3-ad9d-373c65a660c6-00-pohq0iz4g1td.worf.replit.dev/__replco/static/devtools/eruda/3.2.3/eruda.js:2:34400
+Drag end result: 
+Object {source: {…}, destination: {…}, workoutDays: Array(2)}
+Reordered items: 
+Object {items: Array(2), reorderedItem: {…}}
+Reorder mutation payload: 
+Object {items: Array(2), updates: Array(2), workoutIds: Array(2), originalIds: Array(2)}
+API Request failed: 
+Object {method: "PATCH", url: "/api/workout-days/reorder", data: {…}, error: "404: Workout day not found"}
+
+Reorder mutation error: 
+Error {}
