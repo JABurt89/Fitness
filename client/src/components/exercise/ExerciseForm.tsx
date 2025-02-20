@@ -6,7 +6,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { exerciseSchema, type Exercise } from "@shared/schema";
+import { exerciseSchema, type Exercise, type InsertExercise } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 interface ExerciseFormProps {
@@ -16,19 +16,25 @@ interface ExerciseFormProps {
 
 export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps) {
   const { toast } = useToast();
-  const form = useForm({
+  const form = useForm<InsertExercise>({
     resolver: zodResolver(exerciseSchema),
-    defaultValues: exercise || {
+    defaultValues: exercise ? {
+      name: exercise.name,
+      bodyPart: exercise.bodyPart,
+      setsRange: exercise.setsRange,
+      repsRange: exercise.repsRange,
+      weightIncrement: exercise.weightIncrement.toString(),
+    } : {
       name: "",
       bodyPart: "",
       setsRange: [3, 5],
       repsRange: [8, 12],
-      weightIncrement: 2.5,
+      weightIncrement: "2.5",
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: typeof form.getValues) => {
+    mutationFn: async (data: InsertExercise) => {
       if (exercise) {
         await apiRequest('PATCH', `/api/exercises/${exercise.id}`, data);
       } else {
@@ -146,7 +152,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
                   type="number"
                   step="0.5"
                   {...field}
-                  onChange={e => field.onChange(parseFloat(e.target.value))}
                 />
               </FormControl>
               <FormMessage />
