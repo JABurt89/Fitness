@@ -41,7 +41,7 @@ export default function FutureWorkout() {
   const generateSuggestions = () => {
     if (!selectedExercise) return;
 
-    console.log('Selected exercise weight increment:', selectedExercise.weightIncrement);
+    console.log('Selected exercise:', selectedExercise);
 
     const exerciseLogs = workoutLogs
       ?.filter((log) => log.exercise === selectedExercise.name)
@@ -67,17 +67,18 @@ export default function FutureWorkout() {
       return;
     }
 
-    // Parse weight increment to number and log it
-    const weightIncrement = Number(selectedExercise.weightIncrement);
-    console.log('Parsed weight increment:', weightIncrement);
-
-    const exerciseWithNumberWeight = {
-      ...selectedExercise,
-      weightIncrement
+    const exerciseForCalculation = {
+      setsRange: selectedExercise.setsRange,
+      repsRange: selectedExercise.repsRange,
+      weightIncrement: Number(selectedExercise.weightIncrement),
+      startingWeightType: selectedExercise.startingWeightType,
+      customStartingWeight: selectedExercise.customStartingWeight
     };
 
-    const newSuggestions = generateWorkoutSuggestions(currentOneRM, exerciseWithNumberWeight);
-    console.log('Generated suggestions with increment:', weightIncrement, newSuggestions);
+    console.log('Exercise for calculation:', exerciseForCalculation);
+
+    const newSuggestions = generateWorkoutSuggestions(currentOneRM, exerciseForCalculation);
+    console.log('Generated suggestions:', newSuggestions);
     setSuggestions(newSuggestions);
   };
 
