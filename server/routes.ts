@@ -119,7 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      res.status(500).json({ 
+      res.status(500).json({
         error: "Failed to reorder workout days",
         message: error instanceof Error ? error.message : "Unknown error"
       });
