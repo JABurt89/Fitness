@@ -55,8 +55,7 @@ export const workoutLogSchema = z.object({
     .nonnegative("Completed sets cannot be negative")
     .refine(
       (val, ctx) => {
-        // Skip minimum sets validation if isManualEntry is true
-        if (ctx.path.includes("isManualEntry")) return true;
+        if (ctx.parent.isManualEntry) return true;
         return val >= 3;
       },
       { message: "Completed sets must be at least 3" }
