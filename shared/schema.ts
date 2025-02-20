@@ -53,32 +53,26 @@ export const workoutLogSchema = z.object({
   completedSets: z.number()
     .int("Completed sets must be an integer")
     .nonnegative("Completed sets cannot be negative")
-    .refine(val => val >= 0, {
-      message: "Completed sets must be 0 or greater"
-    }),
+    .refine(
+      (val, ctx) => {
+        // Skip minimum sets validation if isManualEntry is true
+        if (ctx.path.includes("isManualEntry")) return true;
+        return val >= 0;
+      },
+      { message: "Completed sets must be 0 or greater" }
+    ),
   failedRep: z.number()
     .int("Failed rep must be an integer")
-    .nonnegative("Failed rep cannot be negative")
-    .refine(val => val >= 0, {
-      message: "Failed rep must be 0 or greater"
-    }),
+    .nonnegative("Failed rep cannot be negative"),
   targetReps: z.number()
     .int("Target reps must be an integer")
-    .positive("Target reps must be greater than 0")
-    .refine(val => val > 0, {
-      message: "Target reps must be greater than 0"
-    }),
+    .positive("Target reps must be greater than 0"),
   weight: z.number()
-    .nonnegative("Weight cannot be negative")
-    .refine(val => val >= 0, {
-      message: "Weight must be 0 or greater"
-    }),
+    .nonnegative("Weight cannot be negative"),
   calculatedOneRM: z.number()
-    .nonnegative("Calculated 1RM cannot be negative")
-    .refine(val => val >= 0, {
-      message: "Calculated 1RM must be 0 or greater"
-    }),
+    .nonnegative("Calculated 1RM cannot be negative"),
   date: z.date().or(z.string().transform(val => new Date(val))).optional(),
+  isManualEntry: z.boolean().optional().default(false),
 }).transform(data => ({
   ...data,
   date: data.date || new Date()

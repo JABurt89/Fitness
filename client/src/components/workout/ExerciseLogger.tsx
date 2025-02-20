@@ -11,17 +11,22 @@ import { Check, X, Plus, Minus } from "lucide-react";
 
 interface ExerciseLoggerProps {
   exercise: Exercise;
-  suggestion?: WorkoutSuggestion;  // Make suggestion optional
+  suggestion?: WorkoutSuggestion;
   onComplete: () => void;
+  isManualEntry?: boolean;
 }
 
-export default function ExerciseLogger({ exercise, suggestion, onComplete }: ExerciseLoggerProps) {
+export default function ExerciseLogger({ 
+  exercise, 
+  suggestion, 
+  onComplete,
+  isManualEntry = false 
+}: ExerciseLoggerProps) {
   const { toast } = useToast();
   const [sets, setSets] = useState<Array<{ completed: boolean; failedRep?: number }>>([]);
 
-  // Initialize with one set if no suggestion is provided
   useEffect(() => {
-    const initialSets = [{ completed: false }];  // Always start with one set
+    const initialSets = [{ completed: false }];
     setSets(initialSets);
   }, []);
 
@@ -81,11 +86,10 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
   };
 
   const handleSubmit = () => {
-    // Only count completed sets
     const completedSets = sets.filter(set => set.completed).length;
     console.log('Completed sets count:', completedSets);
 
-    if (completedSets === 0) {
+    if (completedSets === 0 && !isManualEntry) {
       toast({
         title: "No sets completed",
         description: "Please complete at least one set before logging the workout",
@@ -94,22 +98,19 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
       return;
     }
 
-    // Get failed rep from the last incomplete set if any
     const failedRep = sets.find(set => !set.completed)?.failedRep ?? 0;
-
-    // Use suggestion values if available, otherwise use defaults
     const weight = suggestion?.weight ?? 0;
     const targetReps = suggestion?.reps ?? 1;
     const calculatedOneRM = suggestion?.estimatedOneRM ?? weight;
 
-    // Log the data being sent
     console.log('Preparing workout data:', {
       exercise: exercise.name,
       weight,
       completedSets,
       targetReps,
       failedRep,
-      calculatedOneRM
+      calculatedOneRM,
+      isManualEntry
     });
 
     const workoutData = {
@@ -118,7 +119,8 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
       completedSets,
       targetReps,
       failedRep,
-      calculatedOneRM
+      calculatedOneRM,
+      isManualEntry
     };
 
     console.log('Final workout data before mutation:', workoutData);
