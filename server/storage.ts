@@ -29,6 +29,7 @@ export interface IStorage {
   createWorkoutDay(workoutDay: InsertWorkoutDay): Promise<WorkoutDay>;
   updateWorkoutDay(id: number, workoutDay: Partial<InsertWorkoutDay>): Promise<WorkoutDay>;
   deleteWorkoutDay(id: number): Promise<void>;
+  reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void>;
 
   // Workout log operations
   getAllWorkoutLogs(): Promise<WorkoutLog[]>;
@@ -37,7 +38,7 @@ export interface IStorage {
 
   // Weight log operations
   getAllWeightLogs(): Promise<WeightLog[]>;
-  createWeightLog(weightLog: InsertWeightLog): Promise<WeightLog>;
+  createWeightLog(weightLogData: InsertWeightLog): Promise<WeightLog>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -81,20 +82,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWorkoutDay(workoutDay: InsertWorkoutDay): Promise<WorkoutDay> {
-    const [created] = await db.insert(workoutDays).values({
-      dayName: workoutDay.dayName,
-      exercises: workoutDay.exercises,
-    }).returning();
+    const [created] = await db.insert(workoutDays).values(workoutDay).returning();
     return created;
   }
 
   async updateWorkoutDay(id: number, workoutDay: Partial<InsertWorkoutDay>): Promise<WorkoutDay> {
     const [updated] = await db
       .update(workoutDays)
-      .set({
-        dayName: workoutDay.dayName,
-        exercises: workoutDay.exercises,
-      })
+      .set(workoutDay)
       .where(eq(workoutDays.id, id))
       .returning();
     if (!updated) throw new Error("Workout day not found");
@@ -103,6 +98,18 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWorkoutDay(id: number): Promise<void> {
     await db.delete(workoutDays).where(eq(workoutDays.id, id));
+  }
+
+  async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
+    // Use a transaction to ensure all updates succeed or none do
+    await db.transaction(async (tx) => {
+      for (const update of updates) {
+        await tx
+          .update(workoutDays)
+          .set({ displayOrder: update.displayOrder })
+          .where(eq(workoutDays.id, update.id));
+      }
+    });
   }
 
   // Workout log operations
@@ -118,10 +125,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWorkoutLog(workoutLog: InsertWorkoutLog): Promise<WorkoutLog> {
-    const [created] = await db.insert(workoutLogs).values({
-      ...workoutLog,
-      date: new Date(),
-    }).returning();
+    const [created] = await db.insert(workoutLogs).values(workoutLog).returning();
     return created;
   }
 
@@ -130,11 +134,8 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(weightLog);
   }
 
-  async createWeightLog(data: InsertWeightLog): Promise<WeightLog> {
-    const [created] = await db.insert(weightLog).values({
-      weight: data.weight,
-      date: new Date(),
-    }).returning();
+  async createWeightLog(weightLogData: InsertWeightLog): Promise<WeightLog> {
+    const [created] = await db.insert(weightLog).values(weightLogData).returning();
     return created;
   }
 }
