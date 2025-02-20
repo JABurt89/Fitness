@@ -113,7 +113,13 @@ export default function BeginWorkout() {
       if (pendingWorkout) {
         const weight = Number(previousWorkoutForm.getValues().weight);
         const reps = Number(previousWorkoutForm.getValues().reps);
+        // Calculate current one rep max
         const currentOneRM = weight * (1 + (reps / 30));
+
+        console.log('Generating suggestions with:', {
+          currentOneRM,
+          exercise: pendingWorkout.exercise
+        });
 
         const newSuggestions = generateWorkoutSuggestions(currentOneRM, {
           setsRange: pendingWorkout.exercise.setsRange,
@@ -123,7 +129,9 @@ export default function BeginWorkout() {
           customStartingWeight: undefined
         });
 
-        if (newSuggestions.length > 0) {
+        console.log('Generated suggestions:', newSuggestions);
+
+        if (newSuggestions && newSuggestions.length > 0) {
           setSuggestions(newSuggestions.slice(0, 10));
           setShowSuggestions(true);
           setShowPreviousWorkoutDialog(false);
