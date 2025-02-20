@@ -73,6 +73,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/workout-days/reorder", async (req, res) => {
+    const reorderSchema = z.object({
+      workouts: z.array(z.object({
+        id: z.number(),
+        displayOrder: z.number()
+      }))
+    });
+
+    const result = reorderSchema.safeParse(req.body);
+    if (!result.success) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+
+    try {
+      await storage.reorderWorkoutDays(result.data.workouts);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reorder workout days" });
+    }
+  });
+
   app.delete("/api/workout-days/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     await storage.deleteWorkoutDay(id);
