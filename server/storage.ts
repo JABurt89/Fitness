@@ -121,14 +121,30 @@ export class DatabaseStorage implements IStorage {
     try {
       // First verify all workout days exist using IN clause
       const workoutIds = updates.map(u => u.id);
+      console.log('Attempting to reorder workout days:', {
+        workoutIds,
+        updates
+      });
+
+      // Get all workout days first to debug
+      const allWorkoutDays = await db.select().from(workoutDays);
+      console.log('All workout days in database:', allWorkoutDays);
+
       const existingWorkouts = await db
         .select()
         .from(workoutDays)
         .where(inArray(workoutDays.id, workoutIds));
 
+      console.log('Found existing workouts:', existingWorkouts);
+
       if (existingWorkouts.length !== updates.length) {
         const existingIds = new Set(existingWorkouts.map(w => w.id));
         const missingIds = workoutIds.filter(id => !existingIds.has(id));
+        console.log('Missing workout days:', {
+          expected: workoutIds,
+          found: Array.from(existingIds),
+          missing: missingIds
+        });
         throw new Error(`Workout days not found: ${missingIds.join(', ')}`);
       }
 
