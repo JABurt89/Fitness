@@ -13,7 +13,7 @@ import {
   weightLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, in_ } from "drizzle-orm";
 
 export interface IStorage {
   // Exercise operations
@@ -113,13 +113,18 @@ export class DatabaseStorage implements IStorage {
       const existingWorkouts = await db
         .select()
         .from(workoutDays)
-        .where(eq(workoutDays.id, workoutIds[0])); // Start with first ID
+        .where(workoutDays.id.in(workoutIds));
 
-      if (existingWorkouts.length === 0) {
-        throw new Error(`Workout day with id ${workoutIds[0]} not found`);
+      // Verify all workout days exist
+      const missingWorkouts = workoutIds.filter(id => 
+        !existingWorkouts.some(workout => workout.id === id)
+      );
+
+      if (missingWorkouts.length > 0) {
+        throw new Error(`Workout days with ids ${missingWorkouts.join(', ')} not found`);
       }
 
-      // If we get here, perform the updates
+      // If we get here, all workouts exist, so perform the updates
       await Promise.all(
         updates.map(update =>
           db
