@@ -186,11 +186,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     try {
-      // Log the data before conversion
-      logger.info('Pre-conversion data:', {
+      // Log the data before validation
+      logger.info('Pre-validation data:', {
         ...req.body,
-        isManualEntryPreConversion: req.body.isManualEntry,
-        isManualEntryTypePreConversion: typeof req.body.isManualEntry
+        isManualEntryPreValidation: req.body.isManualEntry,
+        isManualEntryTypePreValidation: typeof req.body.isManualEntry
       });
 
       // Parse numeric strings to numbers
@@ -211,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isManualEntryTypePostConversion: typeof data.isManualEntry
       });
 
-      // Validate without checking exercise constraints
+      // Validate the data
       const result = workoutLogSchema.safeParse(data);
       if (!result.success) {
         logger.error('Workout log validation error:', {

@@ -54,10 +54,19 @@ export const workoutLogSchema = z.object({
     .int("Completed sets must be an integer")
     .nonnegative("Completed sets cannot be negative")
     .refine((val, ctx) => {
+      console.log('Validating completedSets:', {
+        value: val,
+        isManualEntry: ctx.parent.isManualEntry,
+        typeofIsManualEntry: typeof ctx.parent.isManualEntry,
+        parentData: ctx.parent
+      });
+
       // Skip the minimum sets check if isManualEntry is true
       if (ctx.parent.isManualEntry === true) {
+        console.log('Manual entry detected, skipping minimum sets validation');
         return true;
       }
+      console.log('Not manual entry, applying minimum sets validation');
       return val >= 3;
     }, { message: "Completed sets must be at least 3" }),
   failedRep: z.number()
@@ -71,11 +80,19 @@ export const workoutLogSchema = z.object({
   calculatedOneRM: z.number()
     .nonnegative("Calculated 1RM cannot be negative"),
   date: z.date().or(z.string().transform(val => new Date(val))).optional(),
-  isManualEntry: z.boolean().optional().default(false),
-}).transform(data => ({
-  ...data,
-  date: data.date || new Date()
-}));
+  isManualEntry: z.boolean().default(false),
+}).transform(data => {
+  console.log('Schema transform data:', {
+    ...data,
+    isManualEntry: data.isManualEntry,
+    typeofIsManualEntry: typeof data.isManualEntry
+  });
+  return {
+    ...data,
+    date: data.date || new Date(),
+    isManualEntry: Boolean(data.isManualEntry)
+  };
+});
 
 export const setLogSchema = createInsertSchema(setLogs);
 export const weightLogSchema = createInsertSchema(weightLog);

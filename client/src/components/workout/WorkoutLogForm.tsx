@@ -45,7 +45,11 @@ export default function WorkoutLogForm({
   const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
   const [failedSet, setFailedSet] = useState(false);
 
-  console.log('WorkoutLogForm isManualEntry:', isManualEntry, typeof isManualEntry);
+  console.log('WorkoutLogForm mount:', {
+    isManualEntry,
+    typeofIsManualEntry: typeof isManualEntry,
+    props: { workoutDays, exercises, onSuccess }
+  });
 
   const form = useForm<InsertWorkoutLog>({
     resolver: zodResolver(workoutLogSchema),
@@ -63,17 +67,38 @@ export default function WorkoutLogForm({
 
   const mutation = useMutation({
     mutationFn: async (data: InsertWorkoutLog) => {
+      console.log('Mutation data before API call:', {
+        ...data,
+        isManualEntry,
+        typeofIsManualEntry: typeof isManualEntry
+      });
+
       const oneRM = calculateOneRM(
         Number(data.weight),
         Number(data.targetReps),
         Number(data.completedSets),
         Number(data.failedRep)
       );
-      await apiRequest('POST', '/api/workout-logs', {
+
+      const payload = {
         ...data,
         calculatedOneRM: oneRM,
         isManualEntry
-      });
+      };
+
+      console.log('Final API payload:', payload);
+
+      try {
+        await apiRequest('POST', '/api/workout-logs', payload);
+      } catch (error) {
+        console.error('API request failed:', {
+          error,
+          payload,
+          isManualEntry,
+          typeofIsManualEntry: typeof isManualEntry
+        });
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-logs'] });
@@ -82,7 +107,13 @@ export default function WorkoutLogForm({
       setFailedSet(false);
       onSuccess?.();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Mutation error:', {
+        error,
+        formValues: form.getValues(),
+        isManualEntry,
+        typeofIsManualEntry: typeof isManualEntry
+      });
       toast({
         title: "Failed to log workout",
         variant: "destructive",
