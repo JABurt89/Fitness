@@ -31,6 +31,7 @@ interface WorkoutLogFormProps {
   workoutDays: WorkoutDay[];
   exercises: Exercise[];
   onSuccess?: () => void;
+  isManualEntry?: boolean;  // Add isManualEntry to props
 }
 
 // Ported from CLI implementation
@@ -47,6 +48,7 @@ export default function WorkoutLogForm({
   workoutDays,
   exercises,
   onSuccess,
+  isManualEntry = false  // Add prop with default
 }: WorkoutLogFormProps) {
   const { toast } = useToast();
   const [logType, setLogType] = useState<"single" | "day">("single");
@@ -63,6 +65,7 @@ export default function WorkoutLogForm({
       failedRep: 0,
       calculatedOneRM: 0,
       date: new Date(),
+      isManualEntry  // Add isManualEntry to form data
     },
   });
 
@@ -74,7 +77,11 @@ export default function WorkoutLogForm({
         Number(data.completedSets),
         Number(data.failedRep)
       );
-      await apiRequest('POST', '/api/workout-logs', { ...data, calculatedOneRM: oneRM });
+      await apiRequest('POST', '/api/workout-logs', {
+        ...data,
+        calculatedOneRM: oneRM,
+        isManualEntry  // Ensure isManualEntry is included in request
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-logs'] });

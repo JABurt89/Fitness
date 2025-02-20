@@ -67,6 +67,7 @@ export default function WorkoutLog() {
               workoutDays={workoutDays || []}
               exercises={exercises || []}
               onSuccess={() => setIsOpen(false)}
+              isManualEntry={true} // Add isManualEntry prop
             />
           </DialogContent>
         </Dialog>
