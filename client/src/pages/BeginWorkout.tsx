@@ -16,7 +16,6 @@ export default function BeginWorkout() {
 
   const reorderWorkouts = useMutation({
     mutationFn: async (reorderedWorkouts: WorkoutDay[]) => {
-      // Log the full workout objects before transformation
       console.log('Original reordered workouts:', {
         workouts: reorderedWorkouts,
         firstId: reorderedWorkouts[0]?.id,
@@ -36,7 +35,9 @@ export default function BeginWorkout() {
       });
 
       try {
-        await apiRequest('PATCH', '/api/workout-days/reorder', { workouts: updates });
+        await apiRequest('PATCH', '/api/workout-days/reorder', {
+          workouts: updates
+        });
       } catch (error) {
         console.error('Mutation apiRequest error:', {
           error,
