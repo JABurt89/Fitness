@@ -29,14 +29,7 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
     mutationFn: async (log: Omit<WorkoutLog, "id" | "date">) => {
       console.log('Attempting to log workout with data:', log);
       try {
-        const response = await apiRequest('POST', '/api/workout-logs', {
-          ...log,
-          completedSets: log.completedSets.toString(),
-          targetReps: log.targetReps.toString(),
-          weight: log.weight.toString(),
-          failedRep: log.failedRep.toString(),
-          calculatedOneRM: log.calculatedOneRM.toString()
-        });
+        const response = await apiRequest('POST', '/api/workout-logs', log);
         return response;
       } catch (error) {
         console.error('Mutation error details:', error);
@@ -106,11 +99,7 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
       completedSets,
       targetReps,
       failedRep,
-      calculatedOneRM,
-      exerciseConfig: {
-        setsRange: exercise.setsRange,
-        repsRange: exercise.repsRange
-      }
+      calculatedOneRM
     });
 
     logWorkout.mutate({

@@ -200,6 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log the converted data
       logger.info('Post-conversion data:', data);
 
+      // Validate without checking exercise constraints
       const result = workoutLogSchema.safeParse(data);
       if (!result.success) {
         logger.error('Workout log validation error:', {
@@ -214,10 +215,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      const log = await storage.createWorkoutLog({
-        ...result.data,
-        date: result.data.date || new Date(),
-      });
+      const log = await storage.createWorkoutLog(result.data);
 
       logger.info('Successfully created workout log:', log);
       res.json(log);
