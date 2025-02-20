@@ -120,23 +120,26 @@ export class DatabaseStorage implements IStorage {
   async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
     try {
       const workoutIds = updates.map(u => u.id);
-      console.log('Starting reorder operation:', {
-        updates,
+
+      // Add detailed type checking
+      console.log('Type validation for reorder operation:', {
         workoutIds,
-        types: {
-          workoutIds: workoutIds.map(id => ({ id, type: typeof id })),
-          updateIds: updates.map(u => ({ id: u.id, type: typeof u.id }))
-        }
+        idTypes: workoutIds.map(id => ({
+          value: id,
+          type: typeof id,
+          isInteger: Number.isInteger(id),
+          stringified: String(id)
+        }))
       });
 
       // First get all workout days to verify state
       const allWorkoutDays = await db.select().from(workoutDays);
-      console.log('Current database state:', {
-        workoutDays: allWorkoutDays.map(w => ({
+      console.log('Database record types:', {
+        sample: allWorkoutDays.slice(0, 2).map(w => ({
           id: w.id,
-          name: w.dayName,
-          displayOrder: w.displayOrder,
-          idType: typeof w.id
+          idType: typeof w.id,
+          isInteger: Number.isInteger(w.id),
+          stringified: String(w.id)
         }))
       });
 
@@ -146,6 +149,14 @@ export class DatabaseStorage implements IStorage {
         .from(workoutDays)
         .where(inArray(workoutDays.id, workoutIds));
 
+      // Log the actual SQL query if possible
+      console.log('SQL Debug:', {
+        query: db.select()
+          .from(workoutDays)
+          .where(inArray(workoutDays.id, workoutIds)).toSQL(),
+        params: workoutIds
+      });
+
       console.log('Found workouts for reordering:', {
         found: existingWorkouts.map(w => ({
           id: w.id,
@@ -153,7 +164,9 @@ export class DatabaseStorage implements IStorage {
           displayOrder: w.displayOrder,
           idType: typeof w.id
         })),
-        expectedIds: workoutIds
+        expectedIds: workoutIds,
+        matchCount: existingWorkouts.length,
+        expectedCount: updates.length
       });
 
       if (existingWorkouts.length !== updates.length) {
@@ -181,7 +194,7 @@ export class DatabaseStorage implements IStorage {
 
       // Verify final state
       const finalState = await db.select().from(workoutDays);
-      console.log('Final state after reorder:', 
+      console.log('Final state after reorder:',
         finalState.map(w => ({
           id: w.id,
           name: w.dayName,
