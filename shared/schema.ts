@@ -53,13 +53,13 @@ export const workoutLogSchema = z.object({
   completedSets: z.number()
     .int("Completed sets must be an integer")
     .nonnegative("Completed sets cannot be negative")
-    .refine(
-      (val, ctx) => {
-        if (ctx.parent.isManualEntry) return true;
-        return val >= 3;
-      },
-      { message: "Completed sets must be at least 3" }
-    ),
+    .refine((val, ctx) => {
+      // Skip the minimum sets check if isManualEntry is true
+      if (ctx.parent.isManualEntry === true) {
+        return true;
+      }
+      return val >= 3;
+    }, { message: "Completed sets must be at least 3" }),
   failedRep: z.number()
     .int("Failed rep must be an integer")
     .nonnegative("Failed rep cannot be negative"),
