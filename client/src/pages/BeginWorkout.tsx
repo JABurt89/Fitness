@@ -16,31 +16,61 @@ export default function BeginWorkout() {
 
   const reorderWorkouts = useMutation({
     mutationFn: async (reorderedWorkouts: WorkoutDay[]) => {
-      await apiRequest('PATCH', '/api/workout-days/reorder', { workouts: reorderedWorkouts });
+      // Log the full workout objects before transformation
+      console.log('Original reordered workouts:', {
+        workouts: reorderedWorkouts,
+        firstId: reorderedWorkouts[0]?.id,
+        firstIdType: reorderedWorkouts[0]?.id ? typeof reorderedWorkouts[0].id : 'undefined'
+      });
+
+      // Create the updates array with explicit number conversion
+      const updates = reorderedWorkouts.map((workout, index) => ({
+        id: Number(workout.id),
+        displayOrder: index
+      }));
+
+      console.log('Sending update payload:', {
+        updates,
+        firstUpdateId: updates[0]?.id,
+        firstUpdateIdType: updates[0]?.id ? typeof updates[0].id : 'undefined'
+      });
+
+      await apiRequest('PATCH', '/api/workout-days/reorder', { workouts: updates });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
       toast({ title: "Workout order updated" });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Reorder mutation error:', error);
       toast({ title: "Failed to update workout order", variant: "destructive" });
     }
   });
 
   const handleDragEnd = (result: any) => {
-    if (!result.destination || !workoutDays) return;
+    if (!result.destination || !workoutDays) {
+      return;
+    }
+
+    // Log the original workoutDays array
+    console.log('Original workoutDays:', {
+      workouts: workoutDays,
+      firstId: workoutDays[0]?.id,
+      firstIdType: workoutDays[0]?.id ? typeof workoutDays[0].id : 'undefined'
+    });
 
     const items = Array.from(workoutDays);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
-    // Update the display order for each workout
-    const updatedWorkouts = items.map((workout, index) => ({
-      ...workout,
-      displayOrder: index,
-    }));
+    // Log the reordered items before mutation
+    console.log('After reordering:', {
+      items,
+      firstId: items[0]?.id,
+      firstIdType: items[0]?.id ? typeof items[0].id : 'undefined'
+    });
 
-    reorderWorkouts.mutate(updatedWorkouts);
+    reorderWorkouts.mutate(items);
   };
 
   if (isLoading) {
@@ -71,7 +101,7 @@ export default function BeginWorkout() {
                   {sortedWorkouts.map((workout, index) => (
                     <Draggable
                       key={workout.id}
-                      draggableId={workout.id.toString()}
+                      draggableId={String(workout.id)}
                       index={index}
                     >
                       {(provided) => (
