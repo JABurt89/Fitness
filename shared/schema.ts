@@ -49,16 +49,19 @@ export const weightLog = pgTable("weight_log", {
 export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays);
 
-// Separate validation for workout logs - only ensure non-negative numbers
+// Separate validation for workout logs - ensure only basic type validation
 export const workoutLogSchema = z.object({
   exercise: z.string(),
-  completedSets: z.coerce.number().nonnegative(),  // Allow any non-negative number of sets
-  failedRep: z.coerce.number().nonnegative(),      
-  targetReps: z.coerce.number().positive(),        
-  weight: z.coerce.number().nonnegative(),         
+  completedSets: z.coerce.number().nonnegative(),
+  failedRep: z.coerce.number().nonnegative(),
+  targetReps: z.coerce.number().positive(),
+  weight: z.coerce.number().nonnegative(),
   calculatedOneRM: z.coerce.number().nonnegative(),
   date: z.date().or(z.string().transform(val => new Date(val))).optional(),
-});
+}).transform(data => ({
+  ...data,
+  date: data.date || new Date()
+}));
 
 export const setLogSchema = createInsertSchema(setLogs);
 export const weightLogSchema = createInsertSchema(weightLog);

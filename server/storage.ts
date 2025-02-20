@@ -14,6 +14,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, inArray } from "drizzle-orm";
+import { logger } from "./logger";
 
 export interface IStorage {
   // Exercise operations
@@ -146,21 +147,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWorkoutLog(workoutLog: InsertWorkoutLog): Promise<WorkoutLog> {
+    logger.info('Creating workout log with data:', workoutLog);
+
     // Convert numeric values to strings as expected by the database
     const dbWorkoutLog = {
       ...workoutLog,
-      completedSets: String(workoutLog.completedSets),
-      targetReps: String(workoutLog.targetReps),
-      weight: String(workoutLog.weight),
-      failedRep: String(workoutLog.failedRep),
-      calculatedOneRM: String(workoutLog.calculatedOneRM)
+      completedSets: workoutLog.completedSets.toString(),
+      targetReps: workoutLog.targetReps.toString(),
+      weight: workoutLog.weight.toString(),
+      failedRep: workoutLog.failedRep.toString(),
+      calculatedOneRM: workoutLog.calculatedOneRM.toString()
     };
 
-    const [created] = await db.insert(workoutLogs).values(dbWorkoutLog).returning();
-    return created;
+    logger.info('Converted workout log data:', dbWorkoutLog);
+
+    try {
+      const [created] = await db.insert(workoutLogs).values(dbWorkoutLog).returning();
+      logger.info('Successfully created workout log:', created);
+      return created;
+    } catch (error) {
+      logger.error('Error creating workout log:', error);
+      throw error;
+    }
   }
 
-  async deleteWorkoutLog(id: number): Promise<void> { // Added method implementation
+  async deleteWorkoutLog(id: number): Promise<void> { 
     await db.delete(workoutLogs).where(eq(workoutLogs.id, id));
   }
 
