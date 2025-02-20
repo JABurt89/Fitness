@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Exercise, WorkoutLog } from "@shared/schema";
 import type { WorkoutSuggestion } from "@/lib/workoutCalculator";
-import { Check, X } from "lucide-react";
+import { Check, X, Plus, Minus } from "lucide-react";
 
 interface ExerciseLoggerProps {
   exercise: Exercise;
@@ -53,10 +53,20 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
     setSets(newSets);
   };
 
+  const addSet = () => {
+    setSets([...sets, { completed: false }]);
+  };
+
+  const removeSet = () => {
+    if (sets.length > 1) {
+      setSets(sets.slice(0, -1));
+    }
+  };
+
   const handleSubmit = () => {
     // Only count completed sets up to the target number (excluding extra set)
     const completedSets = sets
-      .slice(0, suggestion.sets)
+      .slice(0, sets.length - 1)
       .filter(set => set.completed)
       .length;
 
@@ -86,6 +96,16 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          <div className="flex justify-end gap-2 mb-4">
+            <Button variant="outline" size="sm" onClick={removeSet} disabled={sets.length <= 1}>
+              <Minus className="w-4 h-4" />
+              <span className="ml-2">Remove Set</span>
+            </Button>
+            <Button variant="outline" size="sm" onClick={addSet}>
+              <Plus className="w-4 h-4" />
+              <span className="ml-2">Add Set</span>
+            </Button>
+          </div>
           <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {sets.map((set, index) => (
               <div key={index} className="space-y-2">
