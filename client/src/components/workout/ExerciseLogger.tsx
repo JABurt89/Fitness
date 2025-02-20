@@ -88,6 +88,7 @@ export default function ExerciseLogger({
   const handleSubmit = () => {
     const completedSets = sets.filter(set => set.completed).length;
     console.log('Completed sets count:', completedSets);
+    console.log('isManualEntry value:', isManualEntry, typeof isManualEntry);
 
     if (completedSets === 0 && !isManualEntry) {
       toast({
@@ -110,7 +111,8 @@ export default function ExerciseLogger({
       targetReps,
       failedRep,
       calculatedOneRM,
-      isManualEntry
+      isManualEntry,
+      isManualEntryType: typeof isManualEntry
     });
 
     const workoutData = {

@@ -179,13 +179,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/workout-logs", async (req, res) => {
     logger.info(`POST /api/workout-logs - Raw request:`, {
       body: req.body,
+      isManualEntry: req.body.isManualEntry,
+      isManualEntryType: typeof req.body.isManualEntry,
       headers: req.headers,
       contentType: req.headers['content-type']
     });
 
     try {
       // Log the data before conversion
-      logger.info('Pre-conversion data:', req.body);
+      logger.info('Pre-conversion data:', {
+        ...req.body,
+        isManualEntryPreConversion: req.body.isManualEntry,
+        isManualEntryTypePreConversion: typeof req.body.isManualEntry
+      });
 
       // Parse numeric strings to numbers
       const data = {
@@ -194,11 +200,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetReps: Number(req.body.targetReps),
         weight: Number(req.body.weight),
         failedRep: Number(req.body.failedRep),
-        calculatedOneRM: Number(req.body.calculatedOneRM)
+        calculatedOneRM: Number(req.body.calculatedOneRM),
+        isManualEntry: Boolean(req.body.isManualEntry) // Ensure boolean conversion
       };
 
       // Log the converted data
-      logger.info('Post-conversion data:', data);
+      logger.info('Post-conversion data:', {
+        ...data,
+        isManualEntryPostConversion: data.isManualEntry,
+        isManualEntryTypePostConversion: typeof data.isManualEntry
+      });
 
       // Validate without checking exercise constraints
       const result = workoutLogSchema.safeParse(data);
@@ -206,7 +217,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         logger.error('Workout log validation error:', {
           error: result.error,
           issues: result.error.issues,
-          receivedData: data
+          receivedData: data,
+          isManualEntry: data.isManualEntry,
+          isManualEntryType: typeof data.isManualEntry
         });
         res.status(400).json({ 
           error: result.error,
@@ -218,13 +231,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const log = await storage.createWorkoutLog(result.data);
 
-      logger.info('Successfully created workout log:', log);
+      logger.info('Successfully created workout log:', {
+        log,
+        isManualEntry: result.data.isManualEntry,
+        isManualEntryType: typeof result.data.isManualEntry
+      });
       res.json(log);
     } catch (error) {
       logger.error('Error creating workout log:', {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
-        requestBody: req.body
+        requestBody: req.body,
+        isManualEntry: req.body.isManualEntry
       });
       res.status(500).json({ 
         error: "Failed to create workout log",
