@@ -89,8 +89,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       await storage.reorderWorkoutDays(result.data.workouts);
-      res.json({ success: true });
+      const updatedWorkouts = await storage.getAllWorkoutDays();
+      res.json(updatedWorkouts);
     } catch (error) {
+      console.error('Reorder error:', error);
       res.status(500).json({ error: "Failed to reorder workout days" });
     }
   });
