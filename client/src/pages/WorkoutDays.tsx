@@ -38,26 +38,23 @@ export default function WorkoutDays() {
   });
 
   const reorderWorkouts = useMutation({
-    mutationFn: async (reorderedWorkouts: WorkoutDay[]) => {
-      const updates = reorderedWorkouts.map((workout, index) => ({
+    mutationFn: async (items: WorkoutDay[]) => {
+      const updates = items.map((workout, index) => ({
         id: workout.id,
         displayOrder: index
       }));
 
-      const response = await apiRequest('PATCH', '/api/workout-days/reorder', {
+      await apiRequest('PATCH', '/api/workout-days/reorder', {
         workouts: updates
       });
-      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
       toast({ title: "Workout order updated" });
     },
-    onError: (error) => {
-      console.error('Reorder error:', error);
+    onError: () => {
       toast({ 
         title: "Failed to update workout order",
-        description: "Please refresh the page and try again",
         variant: "destructive" 
       });
     }
