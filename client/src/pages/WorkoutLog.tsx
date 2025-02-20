@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Trash2 } from "lucide-react";
 import WorkoutLogForm from "@/components/workout/WorkoutLogForm";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -60,6 +60,9 @@ export default function WorkoutLog() {
             </Button>
           </DialogTrigger>
           <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Log Workout</DialogTitle>
+            </DialogHeader>
             <WorkoutLogForm
               workoutDays={workoutDays || []}
               exercises={exercises || []}
