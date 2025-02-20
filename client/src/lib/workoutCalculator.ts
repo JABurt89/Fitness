@@ -34,6 +34,8 @@ export function generateWorkoutSuggestions(
     weightIncrement: number;
   }
 ): WorkoutSuggestion[] {
+  console.log('Starting calculation with increment:', exercise.weightIncrement);
+
   const startWeight = currentOneRM * 0.7;  // Start at 70% of 1RM
   const endWeight = currentOneRM * 1.3;    // Go up to 130% of 1RM
   const results: WorkoutSuggestion[] = [];
@@ -63,16 +65,19 @@ export function generateWorkoutSuggestions(
           estimatedOneRM > currentOneRM &&
           estimatedOneRM < currentOneRM * 1.1
         ) {
+          const roundedWeight = Math.round(weight / exercise.weightIncrement) * exercise.weightIncrement;
           results.push({
             sets,
             reps,
-            weight,
+            weight: roundedWeight,
             estimatedOneRM,
           });
         }
       }
     }
   }
+
+  console.log('Generated suggestions count:', results.length);
 
   // Sort by estimated 1RM and return all valid suggestions
   return results.sort((a, b) => a.estimatedOneRM - b.estimatedOneRM);

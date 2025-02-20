@@ -41,6 +41,8 @@ export default function FutureWorkout() {
   const generateSuggestions = () => {
     if (!selectedExercise) return;
 
+    console.log('Selected exercise weight increment:', selectedExercise.weightIncrement);
+
     const exerciseLogs = workoutLogs
       ?.filter((log) => log.exercise === selectedExercise.name)
       .slice(-5)
@@ -65,12 +67,17 @@ export default function FutureWorkout() {
       return;
     }
 
+    // Parse weight increment to number and log it
+    const weightIncrement = Number(selectedExercise.weightIncrement);
+    console.log('Parsed weight increment:', weightIncrement);
+
     const exerciseWithNumberWeight = {
       ...selectedExercise,
-      weightIncrement: Number(selectedExercise.weightIncrement)
+      weightIncrement
     };
 
     const newSuggestions = generateWorkoutSuggestions(currentOneRM, exerciseWithNumberWeight);
+    console.log('Generated suggestions with increment:', weightIncrement, newSuggestions);
     setSuggestions(newSuggestions);
   };
 
