@@ -124,7 +124,10 @@ export class DatabaseStorage implements IStorage {
         if (!workoutMap.has(update.id)) {
           console.error(`Workout day not found:`, {
             updateId: update.id,
-            availableIds: Array.from(workoutMap.keys())
+            availableIds: Array.from(workoutMap.keys()),
+            updateObject: update,
+            idType: typeof update.id,
+            mapKeyTypes: Array.from(workoutMap.keys()).map(id => typeof id)
           });
           throw new Error(`Workout day with id ${update.id} not found`);
         }
@@ -143,7 +146,8 @@ export class DatabaseStorage implements IStorage {
       console.log('Workouts after update:', verifyWorkouts.map(w => ({
         id: w.id,
         name: w.dayName,
-        displayOrder: w.displayOrder
+        displayOrder: w.displayOrder,
+        idType: typeof w.id
       })));
     } catch (error) {
       console.error('Error in reorderWorkoutDays:', error);
