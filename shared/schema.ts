@@ -57,9 +57,9 @@ export const workoutLogSchema = z.object({
       (val, ctx) => {
         // Skip minimum sets validation if isManualEntry is true
         if (ctx.path.includes("isManualEntry")) return true;
-        return val >= 0;
+        return val >= 3;
       },
-      { message: "Completed sets must be 0 or greater" }
+      { message: "Completed sets must be at least 3" }
     ),
   failedRep: z.number()
     .int("Failed rep must be an integer")
