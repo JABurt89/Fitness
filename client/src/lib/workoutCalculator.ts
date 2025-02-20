@@ -24,6 +24,7 @@ export interface WorkoutSuggestion {
 
 /**
  * Generates workout suggestions based on current 1RM and exercise parameters
+ * Matches the logic from the original CLI implementation
  */
 export function generateWorkoutSuggestions(
   currentOneRM: number,
@@ -33,12 +34,13 @@ export function generateWorkoutSuggestions(
     weightIncrement: number;
   }
 ): WorkoutSuggestion[] {
-  const baseWeight = currentOneRM * 0.7;
-  const endWeight = currentOneRM * 1.3;
+  const startWeight = currentOneRM * 0.7;  // Start at 70% of 1RM
+  const endWeight = currentOneRM * 1.3;    // Go up to 130% of 1RM
   const results: WorkoutSuggestion[] = [];
 
+  // Generate all possible combinations
   for (
-    let weight = baseWeight;
+    let weight = startWeight;
     weight <= endWeight;
     weight += exercise.weightIncrement
   ) {
@@ -53,10 +55,10 @@ export function generateWorkoutSuggestions(
         reps++
       ) {
         const increaseFactor = 1 + (sets - 1) * 0.025;
-        const estimatedOneRM =
-          weight * (1 + 0.025 * reps) * increaseFactor;
+        const estimatedOneRM = weight * (1 + 0.025 * reps) * increaseFactor;
 
         // Only include suggestions that lead to progressive overload
+        // but are not too aggressive (within 110% of current 1RM)
         if (
           estimatedOneRM > currentOneRM &&
           estimatedOneRM < currentOneRM * 1.1
@@ -72,10 +74,8 @@ export function generateWorkoutSuggestions(
     }
   }
 
-  // Sort by estimated 1RM and limit to top 5 suggestions
-  return results
-    .sort((a, b) => a.estimatedOneRM - b.estimatedOneRM)
-    .slice(0, 5);
+  // Sort by estimated 1RM and return all valid suggestions
+  return results.sort((a, b) => a.estimatedOneRM - b.estimatedOneRM);
 }
 
 /**
@@ -92,12 +92,12 @@ export function calculateOneRMTrend(recentLogs: { calculatedOneRM: number }[]): 
     };
   }
 
+  // Calculate linear regression
   const data = recentLogs.map((log, i) => [i, log.calculatedOneRM]);
   const n = data.length;
-  
-  // Calculate slope using least squares method
+
   let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
-  
+
   data.forEach(([x, y]) => {
     sumX += x;
     sumY += y;
@@ -107,7 +107,7 @@ export function calculateOneRMTrend(recentLogs: { calculatedOneRM: number }[]): 
 
   const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
   const intercept = (sumY - slope * sumX) / n;
-  
+
   // Predict next value
   const nextOneRM = slope * n + intercept;
 
