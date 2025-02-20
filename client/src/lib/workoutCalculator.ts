@@ -46,7 +46,7 @@ export function generateWorkoutSuggestions(
   console.log('Starting calculation with increment:', exercise.weightIncrement);
 
   // Determine minimum weight based on equipment type
-  const minWeight = exercise.startingWeightType === "Custom" 
+  const minWeight = exercise.startingWeightType === "Custom"
     ? exercise.customStartingWeight || 0
     : STARTING_WEIGHTS[exercise.startingWeightType];
 
@@ -105,8 +105,10 @@ export function generateWorkoutSuggestions(
 
   console.log('Generated suggestions count:', results.length);
 
-  // Sort by estimated 1RM and return all valid suggestions
-  return results.sort((a, b) => a.estimatedOneRM - b.estimatedOneRM);
+  // Sort by estimated 1RM and return top 10 suggestions
+  return results
+    .sort((a, b) => a.estimatedOneRM - b.estimatedOneRM)
+    .slice(0, 10);
 }
 
 /**

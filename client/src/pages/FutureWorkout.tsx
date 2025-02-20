@@ -41,8 +41,6 @@ export default function FutureWorkout() {
   const generateSuggestions = () => {
     if (!selectedExercise) return;
 
-    console.log('Selected exercise:', selectedExercise);
-
     const exerciseLogs = workoutLogs
       ?.filter((log) => log.exercise === selectedExercise.name)
       .slice(-5)
@@ -76,11 +74,7 @@ export default function FutureWorkout() {
       customStartingWeight: selectedExercise.customStartingWeight
     };
 
-    console.log('Exercise for calculation:', exerciseForCalculation);
-    console.log('Current 1RM:', currentOneRM);
-
-    const newSuggestions = generateWorkoutSuggestions(currentOneRM, exerciseForCalculation);
-    console.log('Generated suggestions:', newSuggestions);
+    const newSuggestions = generateWorkoutSuggestions(currentOneRM, exerciseForCalculation).slice(0,10);
     setSuggestions(newSuggestions);
   };
 
@@ -208,9 +202,9 @@ export default function FutureWorkout() {
                     >
                       <td className="p-2">{suggestion.sets}</td>
                       <td className="p-2">{suggestion.reps}</td>
-                      <td className="p-2">{suggestion.weight.toFixed(1)}</td>
+                      <td className="p-2">{suggestion.weight.toFixed(2)}</td>
                       <td className="p-2">
-                        {suggestion.estimatedOneRM.toFixed(1)}
+                        {suggestion.estimatedOneRM.toFixed(2)}
                       </td>
                     </tr>
                   ))}
