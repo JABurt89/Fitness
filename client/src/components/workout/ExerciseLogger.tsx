@@ -26,15 +26,23 @@ export default function ExerciseLogger({
   const [sets, setSets] = useState<Array<{ completed: boolean; failedRep?: number }>>([]);
 
   useEffect(() => {
+    console.log('ExerciseLogger mounted with isManualEntry:', isManualEntry, typeof isManualEntry);
     const initialSets = [{ completed: false }];
     setSets(initialSets);
-  }, []);
+  }, [isManualEntry]);
 
   const logWorkout = useMutation({
     mutationFn: async (log: Omit<WorkoutLog, "id" | "date">) => {
-      console.log('Attempting to log workout with data:', log);
+      console.log('Attempting to log workout with data:', {
+        ...log,
+        isManualEntry,
+        isManualEntryType: typeof isManualEntry
+      });
       try {
-        const response = await apiRequest('POST', '/api/workout-logs', log);
+        const response = await apiRequest('POST', '/api/workout-logs', {
+          ...log,
+          isManualEntry
+        });
         return response;
       } catch (error) {
         console.error('Mutation error details:', error);
@@ -50,7 +58,9 @@ export default function ExerciseLogger({
       console.error('Workout log error details:', {
         error,
         message: error instanceof Error ? error.message : "Unknown error",
-        response: error instanceof Error ? (error as any).response?.data : undefined
+        response: error instanceof Error ? (error as any).response?.data : undefined,
+        isManualEntry,
+        isManualEntryType: typeof isManualEntry
       });
       toast({
         title: "Failed to log workout",
