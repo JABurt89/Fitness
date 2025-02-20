@@ -70,7 +70,7 @@ export default function FutureWorkout() {
     const exerciseForCalculation = {
       setsRange: selectedExercise.setsRange,
       repsRange: selectedExercise.repsRange,
-      weightIncrement: Number(selectedExercise.weightIncrement),
+      weightIncrement: parseFloat(selectedExercise.weightIncrement),
       startingWeightType: selectedExercise.startingWeightType,
       customStartingWeight: selectedExercise.customStartingWeight
     };
