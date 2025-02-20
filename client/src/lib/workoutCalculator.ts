@@ -22,6 +22,14 @@ export interface WorkoutSuggestion {
   estimatedOneRM: number;
 }
 
+const STARTING_WEIGHTS = {
+  "Barbell": 20,
+  "EZ Bar": 12,
+  "Dumbbell": 2.5,
+  "Smith Machine": 15,
+  "Custom": 0
+} as const;
+
 /**
  * Generates workout suggestions based on current 1RM and exercise parameters
  * Matches the logic from the original CLI implementation
@@ -32,11 +40,18 @@ export function generateWorkoutSuggestions(
     setsRange: [number, number];
     repsRange: [number, number];
     weightIncrement: number;
+    startingWeightType: keyof typeof STARTING_WEIGHTS;
+    customStartingWeight?: number;
   }
 ): WorkoutSuggestion[] {
   console.log('Starting calculation with increment:', exercise.weightIncrement);
 
-  const startWeight = currentOneRM * 0.7;  // Start at 70% of 1RM
+  // Determine minimum weight based on equipment type
+  const minWeight = exercise.startingWeightType === "Custom" 
+    ? exercise.customStartingWeight || 0
+    : STARTING_WEIGHTS[exercise.startingWeightType];
+
+  const startWeight = Math.max(currentOneRM * 0.7, minWeight);  // Start at 70% of 1RM or minimum weight
   const endWeight = currentOneRM * 1.3;    // Go up to 130% of 1RM
   const results: WorkoutSuggestion[] = [];
 
@@ -66,12 +81,14 @@ export function generateWorkoutSuggestions(
           estimatedOneRM < currentOneRM * 1.1
         ) {
           const roundedWeight = Math.round(weight / exercise.weightIncrement) * exercise.weightIncrement;
-          results.push({
-            sets,
-            reps,
-            weight: roundedWeight,
-            estimatedOneRM,
-          });
+          if (roundedWeight >= minWeight) {
+            results.push({
+              sets,
+              reps,
+              weight: roundedWeight,
+              estimatedOneRM,
+            });
+          }
         }
       }
     }
