@@ -108,36 +108,39 @@ export class DatabaseStorage implements IStorage {
 
   async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
     try {
-      console.log('Storage reorder updates:', updates);
-
       // Get all workout days and ensure we have them in memory
       const allWorkouts = await db.select().from(workoutDays);
 
-      // Create a map of workout IDs to their full objects, using number keys
-      const workoutMap = new Map(
-        allWorkouts.map(w => [w.id, w])
-      );
+      // Create a map of existing workout IDs
+      const existingIds = new Set(allWorkouts.map(w => w.id));
 
-      // Verify all workouts exist before making any updates
-      for (const update of updates) {
-        if (!workoutMap.has(update.id)) {
-          console.error('Workout day not found:', {
-            updateId: update.id,
-            updateIdType: typeof update.id,
-            availableIds: Array.from(workoutMap.keys()),
-            workoutMapSize: workoutMap.size
-          });
-          throw new Error(`Workout day not found: ${update.id}`);
+      // Check if all workout IDs in the updates exist
+      const missingIds = updates
+        .map(u => u.id)
+        .filter(id => !existingIds.has(id));
+
+      if (missingIds.length > 0) {
+        const error = new Error(`Workout days not found: ${missingIds.join(', ')}`);
+        console.error('Missing workout days:', {
+          missingIds,
+          existingIds: Array.from(existingIds),
+          updates
+        });
+        throw error;
+      }
+
+      // Begin transaction
+      const transaction = db.transaction(async (tx) => {
+        // Perform all updates in sequence
+        for (const update of updates) {
+          await tx
+            .update(workoutDays)
+            .set({ displayOrder: update.displayOrder })
+            .where(eq(workoutDays.id, update.id));
         }
-      }
+      });
 
-      // Perform all updates in sequence
-      for (const update of updates) {
-        await db
-          .update(workoutDays)
-          .set({ displayOrder: update.displayOrder })
-          .where(eq(workoutDays.id, update.id));
-      }
+      await transaction;
 
       // Verify the updates
       const verifyWorkouts = await db.select().from(workoutDays);
@@ -147,7 +150,10 @@ export class DatabaseStorage implements IStorage {
         displayOrder: w.displayOrder
       })));
     } catch (error) {
-      console.error('Error in reorderWorkoutDays:', error);
+      console.error('Error in reorderWorkoutDays:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
       throw error;
     }
   }
