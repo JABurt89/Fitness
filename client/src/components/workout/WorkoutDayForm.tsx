@@ -21,20 +21,23 @@ import { apiRequest } from "@/lib/queryClient";
 interface WorkoutDayFormProps {
   workoutDay?: WorkoutDay | null;
   exercises: Exercise[];
+  nextDayNumber: number;
   onSuccess?: () => void;
 }
 
 export default function WorkoutDayForm({
   workoutDay,
   exercises,
+  nextDayNumber,
   onSuccess,
 }: WorkoutDayFormProps) {
   const { toast } = useToast();
   const form = useForm<InsertWorkoutDay>({
     resolver: zodResolver(workoutDaySchema),
     defaultValues: workoutDay || {
-      dayName: "",
+      dayName: `Day #${nextDayNumber}`,
       exercises: [],
+      displayOrder: nextDayNumber - 1,
     },
   });
 
@@ -69,7 +72,7 @@ export default function WorkoutDayForm({
             <FormItem>
               <FormLabel>Day Name</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} readOnly />
               </FormControl>
               <FormMessage />
             </FormItem>
