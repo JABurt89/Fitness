@@ -41,16 +41,11 @@ export default function WorkoutDays() {
     mutationFn: async (items: WorkoutDay[]) => {
       // Ensure IDs are numbers and create updates array
       const updates = items.map((workout, index) => ({
-        id: Number(workout.id),
+        id: typeof workout.id === 'string' ? parseInt(workout.id) : workout.id,
         displayOrder: index
       }));
 
-      console.log('Reorder mutation payload:', {
-        updates,
-        workoutIds: updates.map(u => u.id)
-      });
-
-      await apiRequest('PATCH', '/api/workout-days/reorder', {
+      return await apiRequest('PATCH', '/api/workout-days/reorder', {
         workouts: updates
       });
     },
@@ -62,7 +57,7 @@ export default function WorkoutDays() {
       console.error('Reorder mutation error:', error);
       toast({ 
         title: "Failed to update workout order",
-        description: error?.message || "An unexpected error occurred",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive" 
       });
     }
@@ -80,7 +75,7 @@ export default function WorkoutDays() {
     // Ensure all IDs are numbers before mutation
     const validItems = items.map(item => ({
       ...item,
-      id: Number(item.id)
+      id: typeof item.id === 'string' ? parseInt(item.id) : item.id
     }));
 
     reorderWorkouts.mutate(validItems);
