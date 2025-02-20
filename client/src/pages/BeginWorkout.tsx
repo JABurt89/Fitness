@@ -69,12 +69,15 @@ export default function BeginWorkout() {
   });
 
   const startWorkout = (workout: WorkoutDay) => {
-    setActiveWorkout(workout);
-    setCurrentExerciseIndex(0);
-
-    // Calculate suggestion for first exercise
     const currentExercise = exercises?.find(e => e.name === workout.exercises[0]);
-    if (!currentExercise) return;
+    if (!currentExercise) {
+      toast({ 
+        title: "Error starting workout",
+        description: "Exercise not found",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const exerciseLogs = workoutLogs
       ?.filter(log => log.exercise === currentExercise.name)
@@ -99,11 +102,19 @@ export default function BeginWorkout() {
       repsRange: currentExercise.repsRange,
       weightIncrement: parseFloat(currentExercise.weightIncrement),
       startingWeightType: "Barbell", // Default to barbell
-      customStartingWeight: null
+      customStartingWeight: undefined
     });
 
     if (suggestions.length > 0) {
-      setWorkoutSuggestion(suggestions[0]); // Use the first suggestion
+      setWorkoutSuggestion(suggestions[0]);
+      setActiveWorkout(workout);
+      setCurrentExerciseIndex(0);
+    } else {
+      toast({ 
+        title: "Error starting workout",
+        description: "Could not generate workout suggestions",
+        variant: "destructive"
+      });
     }
   };
 
@@ -123,7 +134,14 @@ export default function BeginWorkout() {
 
     // Calculate suggestion for next exercise
     const nextExercise = exercises?.find(e => e.name === activeWorkout.exercises[nextIndex]);
-    if (!nextExercise) return;
+    if (!nextExercise) {
+      toast({ 
+        title: "Error loading next exercise",
+        description: "Exercise not found",
+        variant: "destructive"
+      });
+      return;
+    }
 
     const exerciseLogs = workoutLogs
       ?.filter(log => log.exercise === nextExercise.name)
@@ -147,12 +165,18 @@ export default function BeginWorkout() {
       repsRange: nextExercise.repsRange,
       weightIncrement: parseFloat(nextExercise.weightIncrement),
       startingWeightType: "Barbell", // Default to barbell
-      customStartingWeight: null
+      customStartingWeight: undefined
     });
 
     if (suggestions.length > 0) {
       setWorkoutSuggestion(suggestions[0]);
       setCurrentExerciseIndex(nextIndex);
+    } else {
+      toast({ 
+        title: "Error loading next exercise",
+        description: "Could not generate workout suggestions",
+        variant: "destructive"
+      });
     }
   };
 
