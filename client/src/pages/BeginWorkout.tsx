@@ -35,15 +35,32 @@ export default function BeginWorkout() {
         firstUpdateIdType: updates[0]?.id ? typeof updates[0].id : 'undefined'
       });
 
-      await apiRequest('PATCH', '/api/workout-days/reorder', { workouts: updates });
+      try {
+        await apiRequest('PATCH', '/api/workout-days/reorder', { workouts: updates });
+      } catch (error) {
+        console.error('Mutation apiRequest error:', {
+          error,
+          message: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        throw error; // Re-throw to trigger onError handler
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
       toast({ title: "Workout order updated" });
     },
     onError: (error: any) => {
-      console.error('Reorder mutation error:', error);
-      toast({ title: "Failed to update workout order", variant: "destructive" });
+      console.error('Reorder mutation error:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      toast({ 
+        title: "Failed to update workout order",
+        description: error instanceof Error ? error.message : 'An unexpected error occurred',
+        variant: "destructive" 
+      });
     }
   });
 
