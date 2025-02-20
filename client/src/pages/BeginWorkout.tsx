@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, SkipForward } from "lucide-react";
+import { Play, SkipForward, Calculator } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { WorkoutDay, Exercise, WorkoutLog } from "@shared/schema";
@@ -31,6 +31,8 @@ export default function BeginWorkout() {
   const [workoutSuggestion, setWorkoutSuggestion] = useState<WorkoutSuggestion | null>(null);
   const [showPreviousWorkoutDialog, setShowPreviousWorkoutDialog] = useState(false);
   const [pendingWorkout, setPendingWorkout] = useState<{workout: WorkoutDay, exercise: Exercise} | null>(null);
+  const [suggestions, setSuggestions] = useState<WorkoutSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const previousWorkoutForm = useForm<PreviousWorkoutData>({
     resolver: zodResolver(previousWorkoutSchema),
@@ -93,7 +95,7 @@ export default function BeginWorkout() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-logs'] });
       if (pendingWorkout) {
-        startWorkoutWithHistory(pendingWorkout.workout, pendingWorkout.exercise);
+        generateSuggestionsFromHistory(pendingWorkout.workout, pendingWorkout.exercise);
       }
     }
   });
@@ -137,10 +139,10 @@ export default function BeginWorkout() {
       return;
     }
 
-    startWorkoutWithHistory(workout, currentExercise);
+    generateSuggestionsFromHistory(workout, currentExercise);
   };
 
-  const startWorkoutWithHistory = (workout: WorkoutDay, exercise: Exercise) => {
+  const generateSuggestionsFromHistory = (workout: WorkoutDay, exercise: Exercise) => {
     const exerciseLogs = workoutLogs
       ?.filter(log => log.exercise === exercise.name)
       .slice(-5)
@@ -158,7 +160,7 @@ export default function BeginWorkout() {
       currentOneRM = 20;
     }
 
-    const suggestions = generateWorkoutSuggestions(currentOneRM, {
+    const newSuggestions = generateWorkoutSuggestions(currentOneRM, {
       setsRange: exercise.setsRange,
       repsRange: exercise.repsRange,
       weightIncrement: parseFloat(exercise.weightIncrement),
@@ -166,11 +168,10 @@ export default function BeginWorkout() {
       customStartingWeight: undefined
     });
 
-    if (suggestions.length > 0) {
-      setWorkoutSuggestion(suggestions[0]);
-      setActiveWorkout(workout);
-      setCurrentExerciseIndex(0);
-      setPendingWorkout(null);
+    if (newSuggestions.length > 0) {
+      setSuggestions(newSuggestions.slice(0, 10));
+      setShowSuggestions(true);
+      setPendingWorkout({ workout, exercise });
     } else {
       toast({ 
         title: "Error starting workout",
@@ -178,6 +179,16 @@ export default function BeginWorkout() {
         variant: "destructive"
       });
     }
+  };
+
+  const selectSuggestion = (suggestion: WorkoutSuggestion) => {
+    if (!pendingWorkout) return;
+
+    setWorkoutSuggestion(suggestion);
+    setActiveWorkout(pendingWorkout.workout);
+    setCurrentExerciseIndex(0);
+    setPendingWorkout(null);
+    setShowSuggestions(false);
   };
 
   const handlePreviousWorkoutSubmit = (data: PreviousWorkoutData) => {
@@ -225,35 +236,13 @@ export default function BeginWorkout() {
         calculatedOneRM: Number(log.calculatedOneRM)
       }));
 
-    let currentOneRM: number;
-
-    if (exerciseLogs?.length) {
-      const { nextOneRM } = calculateOneRMTrend(exerciseLogs);
-      currentOneRM = nextOneRM;
-    } else {
+    if (!exerciseLogs?.length) {
       setPendingWorkout({ workout: activeWorkout, exercise: nextExercise });
       setShowPreviousWorkoutDialog(true);
       return;
     }
 
-    const suggestions = generateWorkoutSuggestions(currentOneRM, {
-      setsRange: nextExercise.setsRange,
-      repsRange: nextExercise.repsRange,
-      weightIncrement: parseFloat(nextExercise.weightIncrement),
-      startingWeightType: "Barbell",
-      customStartingWeight: undefined
-    });
-
-    if (suggestions.length > 0) {
-      setWorkoutSuggestion(suggestions[0]);
-      setCurrentExerciseIndex(nextIndex);
-    } else {
-      toast({ 
-        title: "Error loading next exercise",
-        description: "Could not generate workout suggestions",
-        variant: "destructive"
-      });
-    }
+    generateSuggestionsFromHistory(activeWorkout, nextExercise);
   };
 
   if (loadingWorkouts || loadingExercises) {
@@ -383,10 +372,56 @@ export default function BeginWorkout() {
                 )}
               />
               <Button type="submit" className="w-full">
-                Start Workout
+                <Calculator className="w-4 h-4 mr-2" />
+                Generate Suggestions
               </Button>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSuggestions} onOpenChange={setShowSuggestions}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Workout Suggestions</DialogTitle>
+          </DialogHeader>
+          <div className="rounded-lg border">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="p-2 text-left font-medium">Sets</th>
+                  <th className="p-2 text-left font-medium">Reps</th>
+                  <th className="p-2 text-left font-medium">Weight (kg)</th>
+                  <th className="p-2 text-left font-medium">Est. 1RM (kg)</th>
+                  <th className="p-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {suggestions.map((suggestion, index) => (
+                  <tr
+                    key={index}
+                    className="border-b last:border-0 hover:bg-muted/50"
+                  >
+                    <td className="p-2">{suggestion.sets}</td>
+                    <td className="p-2">{suggestion.reps}</td>
+                    <td className="p-2">{suggestion.weight.toFixed(2)}</td>
+                    <td className="p-2">
+                      {suggestion.estimatedOneRM.toFixed(2)}
+                    </td>
+                    <td className="p-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => selectSuggestion(suggestion)}
+                      >
+                        Select
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
