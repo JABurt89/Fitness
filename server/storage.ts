@@ -123,7 +123,8 @@ export class DatabaseStorage implements IStorage {
       const workoutIds = updates.map(u => u.id);
       console.log('Attempting to reorder workout days:', {
         workoutIds,
-        updates
+        updates,
+        idTypes: workoutIds.map(id => ({ id, type: typeof id }))
       });
 
       // Get all workout days first to debug
@@ -143,7 +144,11 @@ export class DatabaseStorage implements IStorage {
         console.log('Missing workout days:', {
           expected: workoutIds,
           found: Array.from(existingIds),
-          missing: missingIds
+          missing: missingIds,
+          idTypes: {
+            workoutIds: workoutIds.map(id => typeof id),
+            existingIds: Array.from(existingIds).map(id => typeof id)
+          }
         });
         throw new Error(`Workout days not found: ${missingIds.join(', ')}`);
       }
