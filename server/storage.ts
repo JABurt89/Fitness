@@ -157,7 +157,8 @@ export class DatabaseStorage implements IStorage {
         await db
           .update(workoutDays)
           .set({ displayOrder: update.displayOrder })
-          .where(eq(workoutDays.id, update.id));
+          // Convert string ID back to number for the database query
+          .where(eq(workoutDays.id, Number(update.id)));
       }
 
       const verifyWorkouts = await db.select().from(workoutDays);
