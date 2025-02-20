@@ -13,7 +13,7 @@ import {
   weightLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Exercise operations
@@ -83,11 +83,13 @@ export class DatabaseStorage implements IStorage {
 
   async createWorkoutDay(workoutDay: InsertWorkoutDay): Promise<WorkoutDay> {
     // Get the current maximum display order
-    const [maxOrderResult] = await db
-      .select({ maxOrder: sql<number>`COALESCE(MAX(display_order), -1)` })
-      .from(workoutDays);
+    const [maxOrder] = await db
+      .select()
+      .from(workoutDays)
+      .orderBy(workoutDays.displayOrder)
+      .limit(1);
 
-    const nextOrder = (maxOrderResult?.maxOrder ?? -1) + 1;
+    const nextOrder = (maxOrder?.displayOrder ?? -1) + 1;
 
     const [created] = await db.insert(workoutDays).values({
       ...workoutDay,
@@ -117,19 +119,16 @@ export class DatabaseStorage implements IStorage {
 
   async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
     try {
-      // First verify all workout days exist
+      // First verify all workout days exist using IN clause
       const workoutIds = updates.map(u => u.id);
       const existingWorkouts = await db
-        .select({ id: workoutDays.id })
+        .select()
         .from(workoutDays)
-        .where(sql`${workoutDays.id} = ANY(${sql.array(workoutIds, 'int4')})`);
+        .where(inArray(workoutDays.id, workoutIds));
 
       if (existingWorkouts.length !== updates.length) {
         const existingIds = new Set(existingWorkouts.map(w => w.id));
-        const missingIds = updates
-          .map(u => u.id)
-          .filter(id => !existingIds.has(id));
-
+        const missingIds = workoutIds.filter(id => !existingIds.has(id));
         throw new Error(`Workout days not found: ${missingIds.join(', ')}`);
       }
 
