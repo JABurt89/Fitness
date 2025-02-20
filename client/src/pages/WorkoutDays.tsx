@@ -39,8 +39,9 @@ export default function WorkoutDays() {
 
   const reorderWorkouts = useMutation({
     mutationFn: async (items: WorkoutDay[]) => {
+      // Ensure IDs are numbers
       const updates = items.map((workout, index) => ({
-        id: workout.id,
+        id: Number(workout.id),
         displayOrder: index
       }));
 
@@ -125,7 +126,7 @@ export default function WorkoutDays() {
               {sortedWorkouts.map((day, index) => (
                 <Draggable
                   key={day.id}
-                  draggableId={day.id.toString()}
+                  draggableId={String(day.id)}
                   index={index}
                 >
                   {(provided) => (
