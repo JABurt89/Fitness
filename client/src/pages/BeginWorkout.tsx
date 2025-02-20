@@ -17,9 +17,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 const previousWorkoutSchema = z.object({
-  weight: z.string().transform(val => parseFloat(val)),
-  reps: z.string().transform(val => parseInt(val)),
-  sets: z.string().transform(val => parseInt(val)),
+  weight: z.string().transform(val => Number(val)),
+  reps: z.string().transform(val => Number(val)),
+  sets: z.string().transform(val => Number(val)),
 });
 
 type PreviousWorkoutData = z.infer<typeof previousWorkoutSchema>;
@@ -78,19 +78,22 @@ export default function BeginWorkout() {
 
   const createHistoricalLog = useMutation({
     mutationFn: async (data: { exercise: string, weight: number, sets: number, reps: number }) => {
-      const oneRM = (data.weight * (1 + (data.reps / 30))).toFixed(2);
+      const oneRM = (data.weight * (1 + (data.reps / 30)));
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
-      return await apiRequest('POST', '/api/workout-logs', {
+      const logData = {
         date: yesterday.toISOString(),
         exercise: data.exercise,
-        completedSets: data.sets.toString(),
-        targetReps: data.reps.toString(),
-        weight: data.weight.toString(),
-        failedRep: "0",
+        completedSets: data.sets,
+        targetReps: data.reps,
+        weight: data.weight,
+        failedRep: 0,
         calculatedOneRM: oneRM
-      });
+      };
+
+      console.log('Submitting workout log:', logData);
+      return await apiRequest('POST', '/api/workout-logs', logData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-logs'] });
@@ -98,7 +101,10 @@ export default function BeginWorkout() {
 
       setTimeout(() => {
         if (pendingWorkout) {
-          const currentOneRM = pendingWorkout.exercise.weightIncrement * (1 + (previousWorkoutForm.getValues().reps / 30));
+          const weight = Number(previousWorkoutForm.getValues().weight);
+          const reps = Number(previousWorkoutForm.getValues().reps);
+          const currentOneRM = weight * (1 + (reps / 30));
+
           const newSuggestions = generateWorkoutSuggestions(currentOneRM, {
             setsRange: pendingWorkout.exercise.setsRange,
             repsRange: pendingWorkout.exercise.repsRange,
@@ -121,7 +127,8 @@ export default function BeginWorkout() {
         }
       }, 100);
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Failed to log workout:', error);
       toast({ 
         title: "Failed to log previous workout",
         description: error instanceof Error ? error.message : "An unexpected error occurred",
@@ -226,11 +233,10 @@ export default function BeginWorkout() {
 
     createHistoricalLog.mutate({
       exercise: pendingWorkout.exercise.name,
-      weight: data.weight,
-      sets: data.sets,
-      reps: data.reps
+      weight: Number(data.weight),
+      sets: Number(data.sets),
+      reps: Number(data.reps)
     });
-
     setShowPreviousWorkoutDialog(false);
     previousWorkoutForm.reset();
   };

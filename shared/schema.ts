@@ -1,4 +1,4 @@
-import { pgTable, text, serial, numeric, timestamp, jsonb, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, numeric, timestamp, jsonb, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -34,7 +34,7 @@ export const setLogs = pgTable("set_logs", {
   id: serial("id").primaryKey(),
   workoutLogId: integer("workout_log_id").notNull(),
   setNumber: integer("set_number").notNull(),
-  isSuccess: boolean("is_success").notNull(),
+  isSuccess: integer("is_success").notNull(),
   actualReps: integer("actual_reps"),
   notes: text("notes"),
 });
@@ -45,7 +45,7 @@ export const weightLog = pgTable("weight_log", {
   weight: numeric("weight").notNull(),
 });
 
-// Create insert schemas
+// Create insert schemas with proper numeric validation
 export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays);
 export const workoutLogSchema = createInsertSchema(workoutLogs);
