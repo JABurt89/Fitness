@@ -13,7 +13,7 @@ import {
   weightLog,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export interface IStorage {
   // Exercise operations
@@ -82,10 +82,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWorkoutDay(workoutDay: InsertWorkoutDay): Promise<WorkoutDay> {
+    // Get the current maximum display order
+    const [maxOrderResult] = await db
+      .select({ maxOrder: sql<number>`COALESCE(MAX(display_order), -1)` })
+      .from(workoutDays);
+
+    const nextOrder = (maxOrderResult?.maxOrder ?? -1) + 1;
+
     const [created] = await db.insert(workoutDays).values({
       ...workoutDay,
       exercises: workoutDay.exercises as string[],
+      displayOrder: nextOrder,
     }).returning();
+
     return created;
   }
 
@@ -108,30 +117,24 @@ export class DatabaseStorage implements IStorage {
 
   async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
     try {
-      // Get all workout days and ensure we have them in memory
-      const allWorkouts = await db.select().from(workoutDays);
+      // First verify all workout days exist
+      const workoutIds = updates.map(u => u.id);
+      const existingWorkouts = await db
+        .select({ id: workoutDays.id })
+        .from(workoutDays)
+        .where(sql`${workoutDays.id} = ANY(${sql.array(workoutIds, 'int4')})`);
 
-      // Create a map of existing workout IDs
-      const existingIds = new Set(allWorkouts.map(w => w.id));
+      if (existingWorkouts.length !== updates.length) {
+        const existingIds = new Set(existingWorkouts.map(w => w.id));
+        const missingIds = updates
+          .map(u => u.id)
+          .filter(id => !existingIds.has(id));
 
-      // Check if all workout IDs in the updates exist
-      const missingIds = updates
-        .map(u => u.id)
-        .filter(id => !existingIds.has(id));
-
-      if (missingIds.length > 0) {
-        const error = new Error(`Workout days not found: ${missingIds.join(', ')}`);
-        console.error('Missing workout days:', {
-          missingIds,
-          existingIds: Array.from(existingIds),
-          updates
-        });
-        throw error;
+        throw new Error(`Workout days not found: ${missingIds.join(', ')}`);
       }
 
-      // Begin transaction
-      const transaction = db.transaction(async (tx) => {
-        // Perform all updates in sequence
+      // Perform updates in a transaction
+      await db.transaction(async (tx) => {
         for (const update of updates) {
           await tx
             .update(workoutDays)
@@ -140,9 +143,7 @@ export class DatabaseStorage implements IStorage {
         }
       });
 
-      await transaction;
-
-      // Verify the updates
+      // Log the final state for verification
       const verifyWorkouts = await db.select().from(workoutDays);
       console.log('Workouts after reorder:', verifyWorkouts.map(w => ({
         id: w.id,
@@ -152,7 +153,8 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error in reorderWorkoutDays:', {
         error,
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
+        updates
       });
       throw error;
     }

@@ -74,7 +74,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/workout-days/reorder", async (req, res) => {
-    console.log('Reorder request body:', req.body);
+    console.log('Reorder request:', {
+      body: req.body,
+      workouts: req.body.workouts
+    });
 
     const reorderSchema = z.object({
       workouts: z.array(z.object({
@@ -91,25 +94,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      console.log('Validated workouts:', result.data.workouts);
       await storage.reorderWorkoutDays(result.data.workouts);
       const updatedWorkouts = await storage.getAllWorkoutDays();
+
+      console.log('Reorder successful:', {
+        updates: result.data.workouts,
+        currentState: updatedWorkouts.map(w => ({
+          id: w.id,
+          name: w.dayName,
+          displayOrder: w.displayOrder
+        }))
+      });
+
       res.json(updatedWorkouts);
     } catch (error) {
       console.error('Reorder error:', {
         error,
-        message: error instanceof Error ? error.message : 'Unknown error'
+        message: error instanceof Error ? error.message : 'Unknown error',
+        requestBody: req.body
       });
 
-      // If it's a "not found" error, return 404
       if (error instanceof Error && error.message.includes('not found')) {
-        res.status(404).json({ 
-          error: error.message 
-        });
+        res.status(404).json({ error: error.message });
         return;
       }
 
-      // Otherwise return 500
       res.status(500).json({ 
         error: "Failed to reorder workout days",
         message: error instanceof Error ? error.message : "Unknown error"
