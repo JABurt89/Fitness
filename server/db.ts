@@ -11,34 +11,8 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Add retry logic for the connection
-async function createPool(retries = 3, delay = 1000): Promise<Pool> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-      // Test the connection
-      await pool.connect();
-      return pool;
-    } catch (error) {
-      console.error(`Database connection attempt ${i + 1} failed:`, error);
-      if (i === retries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error('Failed to establish database connection after retries');
-}
+// Create a single pool instance
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-// Export a function to initialize the database connection
-export async function initializeDatabase() {
-  try {
-    const pool = await createPool();
-    console.log('Database connection established successfully');
-    return drizzle({ client: pool, schema });
-  } catch (error) {
-    console.error('Failed to initialize database:', error);
-    throw error;
-  }
-}
-
-// Initialize pool and db with retries
-export const db = await initializeDatabase();
+// Export the database instance
+export const db = drizzle(pool, { schema });

@@ -44,12 +44,13 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Exercise operations
   async getAllExercises(): Promise<Exercise[]> {
-    return await db.select().from(exercises);
+    return await db.query.exercises.findMany();
   }
 
   async getExercise(id: number): Promise<Exercise | undefined> {
-    const [exercise] = await db.select().from(exercises).where(eq(exercises.id, id));
-    return exercise;
+    return await db.query.exercises.findFirst({
+      where: eq(exercises.id, id)
+    });
   }
 
   async createExercise(exercise: InsertExercise): Promise<Exercise> {
@@ -73,21 +74,20 @@ export class DatabaseStorage implements IStorage {
 
   // Workout day operations
   async getAllWorkoutDays(): Promise<WorkoutDay[]> {
-    return await db.select().from(workoutDays);
+    return await db.query.workoutDays.findMany();
   }
 
   async getWorkoutDay(id: number): Promise<WorkoutDay | undefined> {
-    const [workoutDay] = await db.select().from(workoutDays).where(eq(workoutDays.id, id));
-    return workoutDay;
+    return await db.query.workoutDays.findFirst({
+      where: eq(workoutDays.id, id)
+    });
   }
 
   async createWorkoutDay(workoutDay: InsertWorkoutDay): Promise<WorkoutDay> {
     // Get the current maximum display order
-    const [maxOrder] = await db
-      .select()
-      .from(workoutDays)
-      .orderBy(workoutDays.displayOrder)
-      .limit(1);
+    const maxOrder = await db.query.workoutDays.findFirst({
+      orderBy: (workoutDays, { desc }) => [desc(workoutDays.displayOrder)]
+    });
 
     const nextOrder = (maxOrder?.displayOrder ?? -1) + 1;
 
@@ -119,108 +119,29 @@ export class DatabaseStorage implements IStorage {
 
   async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
     try {
-      const workoutIds = updates.map(u => u.id);
-
-      // Add detailed type checking
-      console.log('Type validation for reorder operation:', {
-        workoutIds,
-        idTypes: workoutIds.map(id => ({
-          value: id,
-          type: typeof id,
-          isInteger: Number.isInteger(id),
-          stringified: String(id)
-        }))
-      });
-
-      // First get all workout days to verify state
-      const allWorkoutDays = await db.select().from(workoutDays);
-      console.log('Database record types:', {
-        sample: allWorkoutDays.slice(0, 2).map(w => ({
-          id: w.id,
-          idType: typeof w.id,
-          isInteger: Number.isInteger(w.id),
-          stringified: String(w.id)
-        }))
-      });
-
-      // Verify existence using separate queries for debugging
-      const existingWorkouts = await db
-        .select()
-        .from(workoutDays)
-        .where(inArray(workoutDays.id, workoutIds));
-
-      // Log the actual SQL query if possible
-      console.log('SQL Debug:', {
-        query: db.select()
-          .from(workoutDays)
-          .where(inArray(workoutDays.id, workoutIds)).toSQL(),
-        params: workoutIds
-      });
-
-      console.log('Found workouts for reordering:', {
-        found: existingWorkouts.map(w => ({
-          id: w.id,
-          name: w.dayName,
-          displayOrder: w.displayOrder,
-          idType: typeof w.id
-        })),
-        expectedIds: workoutIds,
-        matchCount: existingWorkouts.length,
-        expectedCount: updates.length
-      });
-
-      if (existingWorkouts.length !== updates.length) {
-        const existingIds = new Set(existingWorkouts.map(w => w.id));
-        const missingIds = workoutIds.filter(id => !existingIds.has(id));
-        throw new Error(`Workout days not found: ${missingIds.join(', ')}`);
-      }
-
-      // Perform updates in a transaction
       await db.transaction(async (tx) => {
         for (const update of updates) {
-          const result = await tx
+          await tx
             .update(workoutDays)
             .set({ displayOrder: update.displayOrder })
-            .where(eq(workoutDays.id, update.id))
-            .returning();
-
-          console.log('Update result:', {
-            update,
-            result,
-            success: result.length > 0
-          });
+            .where(eq(workoutDays.id, update.id));
         }
       });
-
-      // Verify final state
-      const finalState = await db.select().from(workoutDays);
-      console.log('Final state after reorder:',
-        finalState.map(w => ({
-          id: w.id,
-          name: w.dayName,
-          displayOrder: w.displayOrder
-        }))
-      );
     } catch (error) {
-      console.error('Error in reorderWorkoutDays:', {
-        error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error('Error in reorderWorkoutDays:', error);
       throw error;
     }
   }
 
   // Workout log operations
   async getAllWorkoutLogs(): Promise<WorkoutLog[]> {
-    return await db.select().from(workoutLogs);
+    return await db.query.workoutLogs.findMany();
   }
 
   async getWorkoutLogsByExercise(exerciseName: string): Promise<WorkoutLog[]> {
-    return await db
-      .select()
-      .from(workoutLogs)
-      .where(eq(workoutLogs.exercise, exerciseName));
+    return await db.query.workoutLogs.findMany({
+      where: eq(workoutLogs.exercise, exerciseName)
+    });
   }
 
   async createWorkoutLog(workoutLog: InsertWorkoutLog): Promise<WorkoutLog> {
@@ -230,7 +151,7 @@ export class DatabaseStorage implements IStorage {
 
   // Weight log operations
   async getAllWeightLogs(): Promise<WeightLog[]> {
-    return await db.select().from(weightLog);
+    return await db.query.weightLog.findMany();
   }
 
   async createWeightLog(weightLogData: InsertWeightLog): Promise<WeightLog> {

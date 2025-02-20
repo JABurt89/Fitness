@@ -70,7 +70,7 @@ export default function WorkoutLog() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">1RM: {log.calculatedOneRM}kg</p>
-                        {log.failedRep > 0 && (
+                        {Number(log.failedRep) > 0 && (
                           <p className="text-sm text-destructive">
                             Failed at rep {log.failedRep}
                           </p>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,14 +20,22 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
   const [sets, setSets] = useState<Array<{ completed: boolean; failedRep?: number }>>([]);
 
   // Initialize sets based on suggestion
-  useState(() => {
+  useEffect(() => {
     // Add one extra set for "Extra reps"
     setSets(Array(suggestion.sets + 1).fill({ completed: false }));
   }, [suggestion.sets]);
 
   const logWorkout = useMutation({
     mutationFn: async (log: Omit<WorkoutLog, "id" | "date">) => {
-      return await apiRequest('POST', '/api/workout-logs', log);
+      // Convert numeric fields to strings as expected by the schema
+      return await apiRequest('POST', '/api/workout-logs', {
+        ...log,
+        completedSets: String(log.completedSets),
+        targetReps: String(log.targetReps),
+        weight: String(log.weight),
+        failedRep: String(log.failedRep),
+        calculatedOneRM: String(log.calculatedOneRM)
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-logs'] });
@@ -54,14 +62,14 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
 
     // Check the extra set for failed rep
     const extraSet = sets[sets.length - 1];
-    const failedRep = extraSet.failedRep;
+    const failedRep = extraSet.failedRep ?? 0;
 
     logWorkout.mutate({
       exercise: exercise.name,
       weight: suggestion.weight,
       completedSets,
       targetReps: suggestion.reps,
-      failedRep: failedRep ?? 0,
+      failedRep,
       calculatedOneRM: suggestion.estimatedOneRM
     });
   };
@@ -102,7 +110,7 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
                     type="number"
                     placeholder="Failed at rep"
                     value={set.failedRep || ""}
-                    onChange={(e) => handleSetCompletion(index, false, parseInt(e.target.value))}
+                    onChange={(e) => handleSetCompletion(index, false, parseInt(e.target.value, 10))}
                   />
                 )}
               </div>
