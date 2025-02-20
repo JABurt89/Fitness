@@ -11,7 +11,7 @@ import { Check, X, Plus, Minus } from "lucide-react";
 
 interface ExerciseLoggerProps {
   exercise: Exercise;
-  suggestion: WorkoutSuggestion;
+  suggestion?: WorkoutSuggestion;  // Make suggestion optional
   onComplete: () => void;
 }
 
@@ -19,22 +19,23 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
   const { toast } = useToast();
   const [sets, setSets] = useState<Array<{ completed: boolean; failedRep?: number }>>([]);
 
-  // Initialize sets based on suggestion
+  // Initialize with one set if no suggestion is provided
   useEffect(() => {
-    // Add one extra set for "Extra reps"
-    setSets(Array(suggestion.sets + 1).fill({ completed: false }));
-  }, [suggestion.sets]);
+    const initialSets = suggestion 
+      ? Array(suggestion.sets + 1).fill({ completed: false })
+      : [{ completed: false }];
+    setSets(initialSets);
+  }, [suggestion?.sets]);
 
   const logWorkout = useMutation({
     mutationFn: async (log: Omit<WorkoutLog, "id" | "date">) => {
-      // Convert numeric fields to strings as expected by the schema
       return await apiRequest('POST', '/api/workout-logs', {
         ...log,
-        completedSets: String(log.completedSets),
-        targetReps: String(log.targetReps),
-        weight: String(log.weight),
-        failedRep: String(log.failedRep),
-        calculatedOneRM: String(log.calculatedOneRM)
+        completedSets: log.completedSets.toString(),
+        targetReps: log.targetReps.toString(),
+        weight: log.weight.toString(),
+        failedRep: log.failedRep.toString(),
+        calculatedOneRM: log.calculatedOneRM.toString()
       });
     },
     onSuccess: () => {
@@ -42,8 +43,13 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
       toast({ title: "Workout logged successfully" });
       onComplete();
     },
-    onError: () => {
-      toast({ title: "Failed to log workout", variant: "destructive" });
+    onError: (error) => {
+      console.error('Workout log error:', error);
+      toast({ 
+        title: "Failed to log workout", 
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive" 
+      });
     }
   });
 
@@ -64,23 +70,24 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
   };
 
   const handleSubmit = () => {
-    // Only count completed sets up to the target number (excluding extra set)
-    const completedSets = sets
-      .slice(0, sets.length - 1)
-      .filter(set => set.completed)
-      .length;
+    // Only count completed sets
+    const completedSets = sets.filter(set => set.completed).length;
 
-    // Check the extra set for failed rep
-    const extraSet = sets[sets.length - 1];
-    const failedRep = extraSet.failedRep ?? 0;
+    // Get failed rep from the last incomplete set if any
+    const failedRep = sets.find(set => !set.completed)?.failedRep ?? 0;
+
+    // Use suggestion values if available, otherwise use defaults
+    const weight = suggestion?.weight ?? 0;
+    const targetReps = suggestion?.reps ?? 1;
+    const calculatedOneRM = suggestion?.estimatedOneRM ?? weight;
 
     logWorkout.mutate({
       exercise: exercise.name,
-      weight: suggestion.weight,
+      weight,
       completedSets,
-      targetReps: suggestion.reps,
+      targetReps,
       failedRep,
-      calculatedOneRM: suggestion.estimatedOneRM
+      calculatedOneRM
     });
   };
 
@@ -89,9 +96,11 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
       <CardHeader>
         <CardTitle className="flex justify-between items-center">
           <span>{exercise.name}</span>
-          <span className="text-sm font-normal">
-            Target: {suggestion.sets}×{suggestion.reps} @ {suggestion.weight}kg
-          </span>
+          {suggestion && (
+            <span className="text-sm font-normal">
+              Target: {suggestion.sets}×{suggestion.reps} @ {suggestion.weight}kg
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -116,7 +125,7 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
                     onClick={() => handleSetCompletion(index, true)}
                   >
                     <Check className="w-4 h-4 mr-2" />
-                    {index === sets.length - 1 ? "Extra" : `Set ${index + 1}`}
+                    Set {index + 1}
                   </Button>
                   <Button
                     variant={!set.completed ? "destructive" : "outline"}
