@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Dumbbell, Calendar, ClipboardList, Scale, LayoutDashboard } from "lucide-react";
+import { Dumbbell, Calendar, ClipboardList, Scale, LayoutDashboard, Calculator } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -8,6 +8,7 @@ const navigation = [
   { name: "Workout Days", href: "/workout-days", icon: Calendar },
   { name: "Workout Log", href: "/workout-log", icon: ClipboardList },
   { name: "Weight Tracker", href: "/weight-tracker", icon: Scale },
+  { name: "Future Workout", href: "/future-workout", icon: Calculator },
 ];
 
 export default function Sidebar() {

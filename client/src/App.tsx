@@ -9,6 +9,7 @@ import WorkoutDays from "@/pages/WorkoutDays";
 import WorkoutLog from "@/pages/WorkoutLog";
 import WeightTracker from "@/pages/WeightTracker";
 import Sidebar from "@/components/layout/Sidebar";
+import FutureWorkout from "@/pages/FutureWorkout";
 
 function Router() {
   return (
@@ -21,6 +22,7 @@ function Router() {
           <Route path="/workout-days" component={WorkoutDays} />
           <Route path="/workout-log" component={WorkoutLog} />
           <Route path="/weight-tracker" component={WeightTracker} />
+          <Route path="/future-workout" component={FutureWorkout} />
           <Route component={NotFound} />
         </Switch>
       </main>
