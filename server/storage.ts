@@ -149,20 +149,15 @@ export class DatabaseStorage implements IStorage {
   async createWorkoutLog(workoutLog: InsertWorkoutLog): Promise<WorkoutLog> {
     logger.info('Creating workout log with data:', workoutLog);
 
-    // Convert numeric values to strings as expected by the database
-    const dbWorkoutLog = {
-      ...workoutLog,
-      completedSets: workoutLog.completedSets.toString(),
-      targetReps: workoutLog.targetReps.toString(),
-      weight: workoutLog.weight.toString(),
-      failedRep: workoutLog.failedRep.toString(),
-      calculatedOneRM: workoutLog.calculatedOneRM.toString()
-    };
-
-    logger.info('Converted workout log data:', dbWorkoutLog);
-
     try {
-      const [created] = await db.insert(workoutLogs).values(dbWorkoutLog).returning();
+      // Insert the workout log directly without string conversion
+      const [created] = await db.insert(workoutLogs)
+        .values({
+          ...workoutLog,
+          date: workoutLog.date || new Date()
+        })
+        .returning();
+
       logger.info('Successfully created workout log:', created);
       return created;
     } catch (error) {

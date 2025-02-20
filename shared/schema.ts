@@ -23,9 +23,9 @@ export const workoutLogs = pgTable("workout_logs", {
   id: serial("id").primaryKey(),
   date: timestamp("date").notNull().defaultNow(),
   exercise: text("exercise").notNull(),
-  completedSets: numeric("completed_sets").notNull(),
-  failedRep: numeric("failed_rep").notNull(),
-  targetReps: numeric("target_reps").notNull(),
+  completedSets: integer("completed_sets").notNull(),  
+  failedRep: integer("failed_rep").notNull(),          
+  targetReps: integer("target_reps").notNull(),        
   weight: numeric("weight").notNull(),
   calculatedOneRM: numeric("calculated_one_rm").notNull(),
 });
@@ -45,18 +45,16 @@ export const weightLog = pgTable("weight_log", {
   weight: numeric("weight").notNull(),
 });
 
-// Create insert schemas with proper validation
 export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays);
 
-// Separate validation for workout logs - ensure only basic type validation
 export const workoutLogSchema = z.object({
   exercise: z.string(),
-  completedSets: z.coerce.number().nonnegative(),
-  failedRep: z.coerce.number().nonnegative(),
-  targetReps: z.coerce.number().positive(),
-  weight: z.coerce.number().nonnegative(),
-  calculatedOneRM: z.coerce.number().nonnegative(),
+  completedSets: z.number().int().nonnegative(),
+  failedRep: z.number().int().nonnegative(),
+  targetReps: z.number().int().positive(),
+  weight: z.number().nonnegative(),
+  calculatedOneRM: z.number().nonnegative(),
   date: z.date().or(z.string().transform(val => new Date(val))).optional(),
 }).transform(data => ({
   ...data,
@@ -66,7 +64,6 @@ export const workoutLogSchema = z.object({
 export const setLogSchema = createInsertSchema(setLogs);
 export const weightLogSchema = createInsertSchema(weightLog);
 
-// Export types
 export type Exercise = typeof exercises.$inferSelect;
 export type WorkoutDay = typeof workoutDays.$inferSelect;
 export type WorkoutLog = typeof workoutLogs.$inferSelect;
