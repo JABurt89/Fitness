@@ -89,7 +89,7 @@ export default function BeginWorkout() {
         weight: Number(data.weight),
         failedRep: 0,
         calculatedOneRM: oneRM,
-        date: yesterday.toISOString()
+        date: yesterday
       };
 
       console.log('Submitting workout log with types:', {
@@ -99,7 +99,8 @@ export default function BeginWorkout() {
           targetReps: typeof logData.targetReps,
           weight: typeof logData.weight,
           failedRep: typeof logData.failedRep,
-          calculatedOneRM: typeof logData.calculatedOneRM
+          calculatedOneRM: typeof logData.calculatedOneRM,
+          date: typeof logData.date
         }
       });
 

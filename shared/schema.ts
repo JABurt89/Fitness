@@ -45,7 +45,7 @@ export const weightLog = pgTable("weight_log", {
   weight: numeric("weight").notNull(),
 });
 
-// Create insert schemas with proper numeric validation
+// Create insert schemas with proper validation
 export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays);
 export const workoutLogSchema = createInsertSchema(workoutLogs, {
@@ -54,6 +54,7 @@ export const workoutLogSchema = createInsertSchema(workoutLogs, {
   targetReps: z.number(),
   weight: z.number(),
   calculatedOneRM: z.number(),
+  date: z.date().or(z.string().transform(val => new Date(val))),
 });
 export const setLogSchema = createInsertSchema(setLogs);
 export const weightLogSchema = createInsertSchema(weightLog);
