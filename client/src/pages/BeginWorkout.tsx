@@ -94,9 +94,39 @@ export default function BeginWorkout() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-logs'] });
-      if (pendingWorkout) {
-        generateSuggestionsFromHistory(pendingWorkout.workout, pendingWorkout.exercise);
-      }
+      toast({ title: "Previous workout logged successfully" });
+
+      setTimeout(() => {
+        if (pendingWorkout) {
+          const currentOneRM = pendingWorkout.exercise.weightIncrement * (1 + (previousWorkoutForm.getValues().reps / 30));
+          const newSuggestions = generateWorkoutSuggestions(currentOneRM, {
+            setsRange: pendingWorkout.exercise.setsRange,
+            repsRange: pendingWorkout.exercise.repsRange,
+            weightIncrement: parseFloat(pendingWorkout.exercise.weightIncrement),
+            startingWeightType: "Barbell",
+            customStartingWeight: undefined
+          });
+
+          if (newSuggestions.length > 0) {
+            setSuggestions(newSuggestions.slice(0, 10));
+            setShowSuggestions(true);
+            setShowPreviousWorkoutDialog(false);
+          } else {
+            toast({ 
+              title: "Error generating suggestions",
+              description: "Could not generate workout suggestions",
+              variant: "destructive"
+            });
+          }
+        }
+      }, 100);
+    },
+    onError: (error) => {
+      toast({ 
+        title: "Failed to log previous workout",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
     }
   });
 
