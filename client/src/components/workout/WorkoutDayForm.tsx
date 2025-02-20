@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import type { Exercise, WorkoutDay } from "@shared/schema";
+import type { Exercise, WorkoutDay, InsertWorkoutDay } from "@shared/schema";
 import { workoutDaySchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -30,7 +30,7 @@ export default function WorkoutDayForm({
   onSuccess,
 }: WorkoutDayFormProps) {
   const { toast } = useToast();
-  const form = useForm({
+  const form = useForm<InsertWorkoutDay>({
     resolver: zodResolver(workoutDaySchema),
     defaultValues: workoutDay || {
       dayName: "",
@@ -39,7 +39,7 @@ export default function WorkoutDayForm({
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: typeof form.getValues) => {
+    mutationFn: async (data: InsertWorkoutDay) => {
       if (workoutDay) {
         await apiRequest('PATCH', `/api/workout-days/${workoutDay.id}`, data);
       } else {

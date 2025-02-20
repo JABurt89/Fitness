@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import type { WorkoutDay, Exercise } from "@shared/schema";
+import type { WorkoutDay, Exercise, InsertWorkoutLog } from "@shared/schema";
 import { workoutLogSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -34,10 +34,10 @@ interface WorkoutLogFormProps {
 }
 
 // Ported from CLI implementation
-function calculateOneRM(weightUsed: number, targetReps: number, completedSets: number, failedRep: number = 0): number {
-  const C = weightUsed * (1 + 0.025 * targetReps) * (1 + 0.025 * (completedSets - 1));
+function calculateOneRM(weight: number, targetReps: number, completedSets: number, failedRep: number = 0): number {
+  const C = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * (completedSets - 1));
   if (failedRep > 0) {
-    const F = weightUsed * (1 + 0.025 * targetReps) * (1 + 0.025 * completedSets);
+    const F = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * completedSets);
     return C + ((failedRep / targetReps) * (F - C));
   }
   return C;
@@ -53,7 +53,7 @@ export default function WorkoutLogForm({
   const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
   const [failedSet, setFailedSet] = useState(false);
 
-  const form = useForm({
+  const form = useForm<InsertWorkoutLog>({
     resolver: zodResolver(workoutLogSchema),
     defaultValues: {
       exercise: "",
@@ -62,16 +62,17 @@ export default function WorkoutLogForm({
       weight: 0,
       failedRep: 0,
       calculatedOneRM: 0,
+      date: new Date(),
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: typeof form.getValues) => {
+    mutationFn: async (data: InsertWorkoutLog) => {
       const oneRM = calculateOneRM(
-        data.weight,
-        data.targetReps,
-        data.completedSets,
-        data.failedRep
+        Number(data.weight),
+        Number(data.targetReps),
+        Number(data.completedSets),
+        Number(data.failedRep)
       );
       await apiRequest('POST', '/api/workout-logs', { ...data, calculatedOneRM: oneRM });
     },
@@ -90,10 +91,6 @@ export default function WorkoutLogForm({
     },
   });
 
-  const handleSubmit = (data: typeof form.getValues) => {
-    mutation.mutate(data);
-  };
-
   const availableExercises = logType === "day" && selectedDay
     ? exercises.filter(ex => selectedDay.exercises.includes(ex.name))
     : exercises;
@@ -104,7 +101,7 @@ export default function WorkoutLogForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-6">
         <FormItem className="space-y-3">
           <FormLabel>Log Type</FormLabel>
           <RadioGroup
@@ -185,7 +182,7 @@ export default function WorkoutLogForm({
                       type="number"
                       step={selectedExercise.weightIncrement}
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -205,7 +202,7 @@ export default function WorkoutLogForm({
                       min={selectedExercise.setsRange[0]}
                       max={selectedExercise.setsRange[1]}
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -225,7 +222,7 @@ export default function WorkoutLogForm({
                       min={selectedExercise.repsRange[0]}
                       max={selectedExercise.repsRange[1]}
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
@@ -255,7 +252,7 @@ export default function WorkoutLogForm({
                         min={1}
                         max={form.watch("targetReps")}
                         {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />
