@@ -94,7 +94,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Validated workouts:', result.data.workouts);
       await storage.reorderWorkoutDays(result.data.workouts);
       const updatedWorkouts = await storage.getAllWorkoutDays();
-      console.log('Updated workouts:', updatedWorkouts);
+      console.log('Updated workouts:', {
+        updatedWorkouts: updatedWorkouts.map(w => ({
+          id: w.id,
+          name: w.dayName,
+          displayOrder: w.displayOrder,
+          idType: typeof w.id
+        }))
+      });
       res.json(updatedWorkouts);
     } catch (error) {
       console.error('Reorder error:', error);

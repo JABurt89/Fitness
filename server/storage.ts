@@ -113,21 +113,33 @@ export class DatabaseStorage implements IStorage {
       // Get all workout days first
       const allWorkouts = await db.select().from(workoutDays);
       console.log('Current workouts:', {
-        allWorkouts: allWorkouts.map(w => ({ id: w.id, name: w.dayName })),
-        updateIds: updates.map(u => u.id)
+        allWorkouts: allWorkouts.map(w => ({ 
+          id: w.id, 
+          name: w.dayName,
+          idType: typeof w.id
+        })),
+        updateIds: updates.map(u => ({ 
+          id: u.id, 
+          idType: typeof u.id 
+        }))
       });
 
-      const workoutMap = new Map(allWorkouts.map(w => [w.id, w]));
+      // Create a map with string keys for consistent comparison
+      const workoutMap = new Map(
+        allWorkouts.map(w => [String(w.id), w])
+      );
 
-      // Verify all workouts exist
+      // Verify all workouts exist using string comparison
       for (const update of updates) {
-        if (!workoutMap.has(update.id)) {
+        const updateIdStr = String(update.id);
+        if (!workoutMap.has(updateIdStr)) {
           console.error(`Workout day not found:`, {
             updateId: update.id,
+            updateIdType: typeof update.id,
+            updateIdStr: updateIdStr,
             availableIds: Array.from(workoutMap.keys()),
-            updateObject: update,
-            idType: typeof update.id,
-            mapKeyTypes: Array.from(workoutMap.keys()).map(id => typeof id)
+            workoutMapSize: workoutMap.size,
+            allWorkoutIds: allWorkouts.map(w => w.id)
           });
           throw new Error(`Workout day with id ${update.id} not found`);
         }
@@ -135,7 +147,11 @@ export class DatabaseStorage implements IStorage {
 
       // Update each workout's display order
       for (const update of updates) {
-        console.log(`Updating workout ${update.id} to order ${update.displayOrder}`);
+        console.log(`Updating workout ${update.id} to order ${update.displayOrder}`, {
+          updateId: update.id,
+          updateIdType: typeof update.id
+        });
+
         await db
           .update(workoutDays)
           .set({ displayOrder: update.displayOrder })
