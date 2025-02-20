@@ -177,18 +177,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/workout-logs", async (req, res) => {
-    logger.info(`POST /api/workout-logs`, {
-      payload: req.body,
-      types: {
-        completedSets: typeof req.body.completedSets,
-        targetReps: typeof req.body.targetReps,
-        weight: typeof req.body.weight,
-        failedRep: typeof req.body.failedRep,
-        calculatedOneRM: typeof req.body.calculatedOneRM
-      }
+    logger.info(`POST /api/workout-logs - Raw request:`, {
+      body: req.body,
+      headers: req.headers,
+      contentType: req.headers['content-type']
     });
 
     try {
+      // Log the data before conversion
+      logger.info('Pre-conversion data:', req.body);
+
       // Parse numeric strings to numbers
       const data = {
         ...req.body,
@@ -199,13 +197,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         calculatedOneRM: Number(req.body.calculatedOneRM)
       };
 
+      // Log the converted data
+      logger.info('Post-conversion data:', data);
+
       const result = workoutLogSchema.safeParse(data);
       if (!result.success) {
         logger.error('Workout log validation error:', {
           error: result.error,
+          issues: result.error.issues,
           receivedData: data
         });
-        res.status(400).json({ error: result.error });
+        res.status(400).json({ 
+          error: result.error,
+          message: result.error.issues.map(issue => issue.message).join(', ')
+        });
         return;
       }
 

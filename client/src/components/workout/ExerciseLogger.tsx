@@ -21,7 +21,7 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
 
   // Initialize with one set if no suggestion is provided
   useEffect(() => {
-    const initialSets = suggestion 
+    const initialSets = suggestion
       ? Array(suggestion.sets + 1).fill({ completed: false })
       : [{ completed: false }];
     setSets(initialSets);
@@ -45,10 +45,10 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
     },
     onError: (error) => {
       console.error('Workout log error:', error);
-      toast({ 
-        title: "Failed to log workout", 
+      toast({
+        title: "Failed to log workout",
         description: error instanceof Error ? error.message : "Unknown error",
-        variant: "destructive" 
+        variant: "destructive"
       });
     }
   });
@@ -80,6 +80,20 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
     const weight = suggestion?.weight ?? 0;
     const targetReps = suggestion?.reps ?? 1;
     const calculatedOneRM = suggestion?.estimatedOneRM ?? weight;
+
+    // Log the data being sent
+    console.log('Submitting workout log:', {
+      exercise: exercise.name,
+      weight,
+      completedSets,
+      targetReps,
+      failedRep,
+      calculatedOneRM,
+      exerciseConfig: {
+        setsRange: exercise.setsRange,
+        repsRange: exercise.repsRange
+      }
+    });
 
     logWorkout.mutate({
       exercise: exercise.name,
@@ -145,8 +159,8 @@ export default function ExerciseLogger({ exercise, suggestion, onComplete }: Exe
               </div>
             ))}
           </div>
-          <Button 
-            className="w-full" 
+          <Button
+            className="w-full"
             onClick={handleSubmit}
             disabled={logWorkout.isPending}
           >
