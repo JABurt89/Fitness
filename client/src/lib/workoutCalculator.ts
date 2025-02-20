@@ -7,11 +7,16 @@ export function calculateOneRM(
   completedSets: number,
   failedRep: number = 0
 ): number {
+  // Calculate the base 1RM (C)
   const C = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * (completedSets - 1));
+
   if (failedRep > 0) {
+    // Calculate the potential 1RM with the additional set (F)
     const F = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * completedSets);
+    // Add the partial contribution from the failed set
     return C + ((failedRep / targetReps) * (F - C));
   }
+
   return C;
 }
 
