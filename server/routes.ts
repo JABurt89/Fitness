@@ -74,6 +74,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.patch("/api/workout-days/reorder", async (req, res) => {
+    console.log('Reorder request body:', req.body);
+
     const reorderSchema = z.object({
       workouts: z.array(z.object({
         id: z.number(),
@@ -83,17 +85,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const result = reorderSchema.safeParse(req.body);
     if (!result.success) {
+      console.error('Reorder validation error:', result.error);
       res.status(400).json({ error: result.error });
       return;
     }
 
     try {
+      console.log('Validated workouts:', result.data.workouts);
       await storage.reorderWorkoutDays(result.data.workouts);
       const updatedWorkouts = await storage.getAllWorkoutDays();
+      console.log('Updated workouts:', updatedWorkouts);
       res.json(updatedWorkouts);
     } catch (error) {
       console.error('Reorder error:', error);
-      res.status(500).json({ error: "Failed to reorder workout days" });
+      res.status(500).json({ 
+        error: "Failed to reorder workout days",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

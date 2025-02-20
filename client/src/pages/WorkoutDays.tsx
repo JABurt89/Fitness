@@ -44,6 +44,11 @@ export default function WorkoutDays() {
         displayOrder: index
       }));
 
+      console.log('Reorder mutation payload:', {
+        items,
+        updates
+      });
+
       await apiRequest('PATCH', '/api/workout-days/reorder', {
         workouts: updates
       });
@@ -52,21 +57,33 @@ export default function WorkoutDays() {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
       toast({ title: "Workout order updated" });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('Reorder mutation error:', error);
       toast({ 
         title: "Failed to update workout order",
+        description: error?.message || "An unexpected error occurred",
         variant: "destructive" 
       });
     }
   });
 
   const handleDragEnd = (result: any) => {
-    if (!result.destination || !workoutDays) return;
+    if (!result.destination || !workoutDays) {
+      console.log('Invalid drag result:', result);
+      return;
+    }
+
+    console.log('Drag end result:', {
+      source: result.source,
+      destination: result.destination,
+      workoutDays
+    });
 
     const items = Array.from(workoutDays);
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
 
+    console.log('Reordered items:', items);
     reorderWorkouts.mutate(items);
   };
 
