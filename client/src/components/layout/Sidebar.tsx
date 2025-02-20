@@ -22,9 +22,9 @@ export default function Sidebar() {
       <nav className="flex-1 px-3 py-4">
         {navigation.map((item) => (
           <Link key={item.name} href={item.href}>
-            <a
+            <div
               className={cn(
-                "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer",
                 location === item.href
                   ? "bg-sidebar-accent text-sidebar-accent-foreground"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
@@ -32,7 +32,7 @@ export default function Sidebar() {
             >
               <item.icon className="w-5 h-5 mr-3" />
               {item.name}
-            </a>
+            </div>
           </Link>
         ))}
       </nav>
