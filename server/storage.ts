@@ -116,7 +116,9 @@ export class DatabaseStorage implements IStorage {
         allWorkouts: allWorkouts.map(w => ({ 
           id: w.id, 
           name: w.dayName,
-          idType: typeof w.id
+          idType: typeof w.id,
+          rawId: w.id.toString(),
+          rawIdType: typeof w.id.toString()
         })),
         updateIds: updates.map(u => ({ 
           id: u.id, 
