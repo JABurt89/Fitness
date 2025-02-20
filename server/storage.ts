@@ -101,15 +101,28 @@ export class DatabaseStorage implements IStorage {
   }
 
   async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
-    // Use a transaction to ensure all updates succeed or none do
-    await db.transaction(async (tx) => {
-      for (const update of updates) {
-        await tx
-          .update(workoutDays)
-          .set({ displayOrder: update.displayOrder })
-          .where(eq(workoutDays.id, update.id));
-      }
-    });
+    try {
+      await db.transaction(async (tx) => {
+        for (const update of updates) {
+          const [workoutDay] = await tx
+            .select()
+            .from(workoutDays)
+            .where(eq(workoutDays.id, update.id));
+
+          if (!workoutDay) {
+            throw new Error(`Workout day with id ${update.id} not found`);
+          }
+
+          await tx
+            .update(workoutDays)
+            .set({ displayOrder: update.displayOrder })
+            .where(eq(workoutDays.id, update.id));
+        }
+      });
+    } catch (error) {
+      console.error('Error in reorderWorkoutDays:', error);
+      throw error;
+    }
   }
 
   // Workout log operations
