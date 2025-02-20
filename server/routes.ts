@@ -189,11 +189,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     try {
-      const result = workoutLogSchema.safeParse(req.body);
+      // Parse numeric strings to numbers
+      const data = {
+        ...req.body,
+        completedSets: Number(req.body.completedSets),
+        targetReps: Number(req.body.targetReps),
+        weight: Number(req.body.weight),
+        failedRep: Number(req.body.failedRep),
+        calculatedOneRM: Number(req.body.calculatedOneRM)
+      };
+
+      const result = workoutLogSchema.safeParse(data);
       if (!result.success) {
         logger.error('Workout log validation error:', {
           error: result.error,
-          receivedData: req.body
+          receivedData: data
         });
         res.status(400).json({ error: result.error });
         return;
