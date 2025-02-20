@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import type { WorkoutDay } from "@shared/schema";
@@ -15,13 +15,7 @@ export default function BeginWorkout() {
   });
 
   const reorderWorkouts = useMutation({
-    mutationFn: async (reorderedWorkouts: WorkoutDay[]) => {
-      // Create the updates array with explicit type conversion
-      const updates = reorderedWorkouts.map((workout, index) => ({
-        id: Number(workout.id), // Ensure ID is converted to number
-        displayOrder: index
-      }));
-
+    mutationFn: async (updates: { id: number; displayOrder: number }[]) => {
       return await apiRequest('PATCH', '/api/workout-days/reorder', {
         workouts: updates
       });
@@ -31,7 +25,6 @@ export default function BeginWorkout() {
       toast({ title: "Workout order updated" });
     },
     onError: (error: any) => {
-      console.error('Reorder mutation error:', error);
       toast({ 
         title: "Failed to update workout order",
         description: error instanceof Error ? error.message : 'An unexpected error occurred',
@@ -40,22 +33,26 @@ export default function BeginWorkout() {
     }
   });
 
-  const handleDragEnd = (result: any) => {
-    if (!result.destination || !workoutDays) {
-      return;
-    }
+  const moveWorkout = (workoutId: number, direction: 'up' | 'down') => {
+    if (!workoutDays) return;
 
-    const items = Array.from(workoutDays);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    const sortedWorkouts = [...workoutDays].sort((a, b) => 
+      (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
+    );
 
-    // Ensure all IDs are numbers before sending to mutation
-    const validItems = items.map(item => ({
-      ...item,
-      id: typeof item.id === 'string' ? parseInt(item.id) : item.id
-    }));
+    const currentIndex = sortedWorkouts.findIndex(w => w.id === workoutId);
+    if (currentIndex === -1) return;
 
-    reorderWorkouts.mutate(validItems);
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= sortedWorkouts.length) return;
+
+    // Swap the display orders
+    const updates = [
+      { id: sortedWorkouts[currentIndex].id, displayOrder: newIndex },
+      { id: sortedWorkouts[newIndex].id, displayOrder: currentIndex }
+    ];
+
+    reorderWorkouts.mutate(updates);
   };
 
   if (isLoading) {
@@ -75,49 +72,44 @@ export default function BeginWorkout() {
           <CardTitle>Select Workout</CardTitle>
         </CardHeader>
         <CardContent>
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <Droppable droppableId="workouts">
-              {(provided) => (
-                <div
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                  className="space-y-2"
-                >
-                  {sortedWorkouts.map((workout, index) => (
-                    <Draggable
-                      key={workout.id}
-                      draggableId={String(workout.id)}
-                      index={index}
-                    >
-                      {(provided) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                        >
-                          <Button
-                            variant="outline"
-                            className="w-full justify-between"
-                            onClick={() => {
-                              // TODO: Implement workout selection
-                            }}
-                          >
-                            <span>{workout.dayName}</span>
-                            <span className="text-muted-foreground">
-                              {workout.lastCompleted
-                                ? new Date(workout.lastCompleted).toLocaleDateString()
-                                : 'Never completed'}
-                            </span>
-                          </Button>
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
+          <div className="space-y-2">
+            {sortedWorkouts.map((workout, index) => (
+              <div key={workout.id} className="flex items-center gap-2">
+                <div className="flex flex-col">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={index === 0}
+                    onClick={() => moveWorkout(workout.id, 'up')}
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    disabled={index === sortedWorkouts.length - 1}
+                    onClick={() => moveWorkout(workout.id, 'down')}
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
                 </div>
-              )}
-            </Droppable>
-          </DragDropContext>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => {
+                    // TODO: Implement workout selection
+                  }}
+                >
+                  <span>{workout.dayName}</span>
+                  <span className="text-muted-foreground">
+                    {workout.lastCompleted
+                      ? new Date(workout.lastCompleted).toLocaleDateString()
+                      : 'Never completed'}
+                  </span>
+                </Button>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
