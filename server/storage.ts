@@ -82,14 +82,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWorkoutDay(workoutDay: InsertWorkoutDay): Promise<WorkoutDay> {
-    const [created] = await db.insert(workoutDays).values(workoutDay).returning();
+    const [created] = await db.insert(workoutDays).values({
+      ...workoutDay,
+      exercises: workoutDay.exercises as string[],
+    }).returning();
     return created;
   }
 
   async updateWorkoutDay(id: number, workoutDay: Partial<InsertWorkoutDay>): Promise<WorkoutDay> {
     const [updated] = await db
       .update(workoutDays)
-      .set(workoutDay)
+      .set({
+        ...workoutDay,
+        exercises: workoutDay.exercises as string[] | undefined,
+      })
       .where(eq(workoutDays.id, id))
       .returning();
     if (!updated) throw new Error("Workout day not found");
@@ -102,23 +108,26 @@ export class DatabaseStorage implements IStorage {
 
   async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
     try {
-      await db.transaction(async (tx) => {
-        for (const update of updates) {
-          const [workoutDay] = await tx
-            .select()
-            .from(workoutDays)
-            .where(eq(workoutDays.id, update.id));
+      // First verify all workout days exist
+      const workoutIds = updates.map(u => u.id);
+      const existingWorkouts = await db
+        .select()
+        .from(workoutDays)
+        .where(eq(workoutDays.id, workoutIds[0])); // Start with first ID
 
-          if (!workoutDay) {
-            throw new Error(`Workout day with id ${update.id} not found`);
-          }
+      if (existingWorkouts.length === 0) {
+        throw new Error(`Workout day with id ${workoutIds[0]} not found`);
+      }
 
-          await tx
+      // If we get here, perform the updates
+      await Promise.all(
+        updates.map(update =>
+          db
             .update(workoutDays)
             .set({ displayOrder: update.displayOrder })
-            .where(eq(workoutDays.id, update.id));
-        }
-      });
+            .where(eq(workoutDays.id, update.id))
+        )
+      );
     } catch (error) {
       console.error('Error in reorderWorkoutDays:', error);
       throw error;
