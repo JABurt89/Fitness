@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronUp, ChevronDown, Play } from "lucide-react";
+import { Play, SkipForward } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import type { WorkoutDay, Exercise, WorkoutLog } from "@shared/schema";
@@ -30,19 +30,22 @@ export default function BeginWorkout() {
     enabled: !!activeWorkout
   });
 
-  const reorderWorkouts = useMutation({
-    mutationFn: async (updates: { id: number; displayOrder: number }[]) => {
-      return await apiRequest('PATCH', '/api/workout-days/reorder', {
-        workouts: updates
+  const skipWorkout = useMutation({
+    mutationFn: async (workoutDay: WorkoutDay) => {
+      // Get max display order
+      const maxOrder = Math.max(...(workoutDays?.map(w => w.displayOrder ?? 0) ?? [0]));
+
+      return await apiRequest('PATCH', `/api/workout-days/${workoutDay.id}`, {
+        displayOrder: maxOrder + 1
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
-      toast({ title: "Workout order updated" });
+      toast({ title: "Workout skipped" });
     },
     onError: (error: any) => {
       toast({ 
-        title: "Failed to update workout order",
+        title: "Failed to skip workout",
         description: error instanceof Error ? error.message : 'An unexpected error occurred',
         variant: "destructive" 
       });
@@ -51,8 +54,12 @@ export default function BeginWorkout() {
 
   const updateWorkoutCompletion = useMutation({
     mutationFn: async (workoutId: number) => {
+      // Get max display order
+      const maxOrder = Math.max(...(workoutDays?.map(w => w.displayOrder ?? 0) ?? [0]));
+
       return await apiRequest('PATCH', `/api/workout-days/${workoutId}`, {
-        lastCompleted: new Date().toISOString()
+        lastCompleted: new Date().toISOString(),
+        displayOrder: maxOrder + 1
       });
     },
     onSuccess: () => {
@@ -60,27 +67,6 @@ export default function BeginWorkout() {
       toast({ title: "Workout completed" });
     }
   });
-
-  const moveWorkout = (workoutId: number, direction: 'up' | 'down') => {
-    if (!workoutDays) return;
-
-    const sortedWorkouts = [...workoutDays].sort((a, b) => 
-      (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
-    );
-
-    const currentIndex = sortedWorkouts.findIndex(w => w.id === workoutId);
-    if (currentIndex === -1) return;
-
-    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= sortedWorkouts.length) return;
-
-    const updates = [
-      { id: sortedWorkouts[currentIndex].id, displayOrder: newIndex },
-      { id: sortedWorkouts[newIndex].id, displayOrder: currentIndex }
-    ];
-
-    reorderWorkouts.mutate(updates);
-  };
 
   const startWorkout = (workout: WorkoutDay) => {
     setActiveWorkout(workout);
@@ -116,7 +102,9 @@ export default function BeginWorkout() {
       customStartingWeight: null
     });
 
-    setWorkoutSuggestion(suggestions[0]); // Use the first suggestion
+    if (suggestions.length > 0) {
+      setWorkoutSuggestion(suggestions[0]); // Use the first suggestion
+    }
   };
 
   const handleExerciseComplete = () => {
@@ -162,8 +150,10 @@ export default function BeginWorkout() {
       customStartingWeight: null
     });
 
-    setWorkoutSuggestion(suggestions[0]);
-    setCurrentExerciseIndex(nextIndex);
+    if (suggestions.length > 0) {
+      setWorkoutSuggestion(suggestions[0]);
+      setCurrentExerciseIndex(nextIndex);
+    }
   };
 
   if (loadingWorkouts || loadingExercises) {
@@ -211,39 +201,36 @@ export default function BeginWorkout() {
           <div className="space-y-2">
             {sortedWorkouts.map((workout, index) => (
               <div key={workout.id} className="flex items-center gap-2">
-                <div className="flex flex-col">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={index === 0}
-                    onClick={() => moveWorkout(workout.id, 'up')}
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    disabled={index === sortedWorkouts.length - 1}
-                    onClick={() => moveWorkout(workout.id, 'down')}
-                  >
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full justify-between"
-                  onClick={() => startWorkout(workout)}
-                >
-                  <span className="flex items-center gap-2">
-                    <Play className="h-4 w-4" />
-                    {workout.dayName}
-                  </span>
-                  <span className="text-muted-foreground">
-                    {workout.lastCompleted
-                      ? `Last: ${new Date(workout.lastCompleted).toLocaleDateString()}`
-                      : 'Never completed'}
-                  </span>
-                </Button>
+                {index === 0 ? (
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => startWorkout(workout)}
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Start {workout.dayName}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => skipWorkout.mutate(workout)}
+                    >
+                      <SkipForward className="h-4 w-4" />
+                      Skip
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="w-full p-4 border rounded-lg bg-muted">
+                    <div className="flex justify-between items-center">
+                      <span>{workout.dayName}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {workout.lastCompleted
+                          ? `Last: ${new Date(workout.lastCompleted).toLocaleDateString()}`
+                          : 'Never completed'}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
