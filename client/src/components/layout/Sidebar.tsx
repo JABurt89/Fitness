@@ -19,9 +19,9 @@ export default function Sidebar() {
   const isMobile = useIsMobile();
 
   return (
-    <UISidebar>
+    <UISidebar variant="sidebar" collapsible="icon">
       <SidebarHeader className="flex items-center h-16 px-6 border-b border-border">
-        <h1 className="text-xl font-bold text-sidebar-foreground">Workout Tracker</h1>
+        <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
         {!isMobile && <SidebarTrigger className="ml-auto" />}
       </SidebarHeader>
       <SidebarContent>
@@ -35,11 +35,11 @@ export default function Sidebar() {
                   className={cn(
                     "w-full",
                     location === item.href
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-foreground/80 hover:bg-accent/50 hover:text-accent-foreground"
                   )}
                 >
-                  <item.icon className="w-5 h-5 mr-3" />
+                  <item.icon className="w-5 h-5" aria-hidden="true" />
                   <span>{item.name}</span>
                 </SidebarMenuButton>
               </Link>
