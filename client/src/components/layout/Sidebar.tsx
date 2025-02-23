@@ -1,6 +1,8 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Dumbbell, Calendar, ClipboardList, Scale, LayoutDashboard, Calculator, Play } from "lucide-react";
+import { Sidebar as UISidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -14,29 +16,37 @@ const navigation = [
 
 export default function Sidebar() {
   const [location] = useLocation();
+  const isMobile = useIsMobile();
 
   return (
-    <div className="flex flex-col w-64 bg-sidebar border-r border-border">
-      <div className="flex items-center h-16 px-6 border-b border-border">
+    <UISidebar>
+      <SidebarHeader className="flex items-center h-16 px-6 border-b border-border">
         <h1 className="text-xl font-bold text-sidebar-foreground">Workout Tracker</h1>
-      </div>
-      <nav className="flex-1 px-3 py-4">
-        {navigation.map((item) => (
-          <Link key={item.name} href={item.href}>
-            <div
-              className={cn(
-                "flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer",
-                location === item.href
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              )}
-            >
-              <item.icon className="w-5 h-5 mr-3" />
-              {item.name}
-            </div>
-          </Link>
-        ))}
-      </nav>
-    </div>
+        {!isMobile && <SidebarTrigger className="ml-auto" />}
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarMenu>
+          {navigation.map((item) => (
+            <SidebarMenuItem key={item.name}>
+              <Link href={item.href}>
+                <SidebarMenuButton
+                  isActive={location === item.href}
+                  tooltip={item.name}
+                  className={cn(
+                    "w-full",
+                    location === item.href
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  )}
+                >
+                  <item.icon className="w-5 h-5 mr-3" />
+                  <span>{item.name}</span>
+                </SidebarMenuButton>
+              </Link>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarContent>
+    </UISidebar>
   );
 }
