@@ -27,7 +27,10 @@ export default function Sidebar() {
   const isMobile = useIsMobile();
 
   return (
-    <UISidebar variant="inset" collapsible="offcanvas">
+    <UISidebar 
+      variant="sidebar" 
+      collapsible={isMobile ? "offcanvas" : "icon"}
+    >
       <SidebarHeader className="flex items-center h-16 px-6 border-b border-border">
         <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
         <SidebarTrigger className="ml-auto" />
