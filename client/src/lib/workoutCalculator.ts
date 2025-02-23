@@ -21,7 +21,7 @@ export function calculateOneRM(
   // If there was a failed set, calculate the partial contribution
   if (failedRep > 0) {
     const nextSetMultiplier = Math.pow(1.025, completedSets);
-    const partialSetContribution = (failedRep / targetReps) * (baseOneRM * (nextSetMultiplier - setsMultiplier));
+    const partialSetContribution = (failedRep / targetReps) * (baseOneRM * nextSetMultiplier - finalOneRM);
     finalOneRM += partialSetContribution;
   }
 
@@ -75,23 +75,23 @@ export function generateWorkoutSuggestions(
         reps <= exercise.repsRange[1];
         reps++
       ) {
-        const estimatedOneRM = calculateOneRM(weight, reps, sets);
+        const roundedWeight = Math.round(weight / exercise.weightIncrement) * exercise.weightIncrement;
+        if (roundedWeight < minWeight) continue;
 
-        // Only include suggestions that would increase the 1RM
-        // and are not too aggressive (within 110% of current 1RM)
+        const estimatedOneRM = calculateOneRM(roundedWeight, reps, sets);
+
+        // Only include suggestions that give a slightly higher 1RM (at least 0.1kg increase)
+        // but not too aggressive (within 105% of current 1RM)
         if (
-          estimatedOneRM > currentOneRM &&
-          estimatedOneRM <= currentOneRM * 1.1
+          estimatedOneRM > currentOneRM + 0.1 &&
+          estimatedOneRM <= currentOneRM * 1.05
         ) {
-          const roundedWeight = Math.round(weight / exercise.weightIncrement) * exercise.weightIncrement;
-          if (roundedWeight >= minWeight) {
-            results.push({
-              sets,
-              reps,
-              weight: Number(roundedWeight.toFixed(2)),
-              estimatedOneRM: Number(estimatedOneRM.toFixed(2)),
-            });
-          }
+          results.push({
+            sets,
+            reps,
+            weight: Number(roundedWeight.toFixed(2)),
+            estimatedOneRM: Number(estimatedOneRM.toFixed(2)),
+          });
         }
       }
     }
