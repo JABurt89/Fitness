@@ -27,7 +27,7 @@ function Router() {
           "px-4 py-4 md:px-6 md:py-6",
           "w-full max-w-full min-h-screen",
           "transition-all duration-300 ease-in-out",
-          isMobile && "pb-16" // Space for mobile navigation
+          isMobile && "pt-16" // Space for mobile navigation at top
         )}>
           <div className="mx-auto max-w-7xl w-full">
             <Switch>

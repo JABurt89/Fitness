@@ -28,6 +28,16 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* Top Navigation Bar for Mobile */}
+      {isMobile && (
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border bg-background px-4 py-2">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="h-10 w-10" />
+            <span className="font-medium">Menu</span>
+          </div>
+        </div>
+      )}
+
       <UISidebar 
         variant="floating"
         collapsible={isMobile ? "offcanvas" : "icon"}
@@ -39,13 +49,16 @@ export default function Sidebar() {
           "transition-all duration-300 ease-in-out"
         )}
       >
-        <SidebarHeader className="flex items-center h-16 px-4 border-b border-border">
+        <SidebarHeader className={cn(
+          "flex items-center h-16 px-4 border-b border-border",
+          isMobile && "mt-14" // Add margin-top when mobile to account for top nav
+        )}>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
           </div>
-          <SidebarTrigger className="ml-2 shrink-0" />
+          {!isMobile && <SidebarTrigger className="ml-2 shrink-0" />}
         </SidebarHeader>
-        <SidebarContent className="flex-1 overflow-y-auto">
+        <SidebarContent className="flex-1 overflow-y-auto bg-background">
           <SidebarMenu>
             {navigation.map((item) => (
               <SidebarMenuItem key={item.name}>
@@ -70,16 +83,6 @@ export default function Sidebar() {
           </SidebarMenu>
         </SidebarContent>
       </UISidebar>
-
-      {/* Mobile Navigation Bar */}
-      {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between border-t border-border bg-background px-4 py-2">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="h-10 w-10" />
-            <span className="font-medium">Menu</span>
-          </div>
-        </div>
-      )}
     </>
   );
 }
