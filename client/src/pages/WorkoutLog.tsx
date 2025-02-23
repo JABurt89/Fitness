@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ChevronDown } from "lucide-react";
 import WorkoutLogForm from "@/components/workout/WorkoutLogForm";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +12,7 @@ import type { WorkoutLog, Exercise, WorkoutDay } from "@shared/schema";
 export default function WorkoutLog() {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
+  const [showAllLogs, setShowAllLogs] = useState(false);
   const { toast } = useToast();
 
   const { data: workoutLogs } = useQuery<WorkoutLog[]>({
@@ -49,6 +50,17 @@ export default function WorkoutLog() {
     return acc;
   }, {} as Record<string, WorkoutLog[]>) || {};
 
+  // Get dates sorted in reverse chronological order
+  const sortedDates = Object.keys(groupedLogs)
+    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+  // Limit dates if not showing all logs
+  const displayDates = showAllLogs 
+    ? sortedDates 
+    : sortedDates.slice(0, 10);
+
+  const hasMoreLogs = sortedDates.length > 10;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -67,23 +79,22 @@ export default function WorkoutLog() {
               workoutDays={workoutDays || []}
               exercises={exercises || []}
               onSuccess={() => setIsOpen(false)}
-              isManualEntry={true} // Add isManualEntry prop
             />
           </DialogContent>
         </Dialog>
       </div>
 
       <div className="space-y-4">
-        {Object.entries(groupedLogs)
-          .sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime())
-          .map(([date, logs]) => (
-            <Card key={date}>
-              <CardHeader>
-                <CardTitle className="text-lg">{date}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {logs.map((log) => (
+        {displayDates.map((date) => (
+          <Card key={date}>
+            <CardHeader>
+              <CardTitle className="text-lg">{date}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {groupedLogs[date]
+                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .map((log) => (
                     <div key={log.id} className="flex justify-between items-center border-b pb-2">
                       <div>
                         <h4 className="font-medium">{log.exercise}</h4>
@@ -111,10 +122,21 @@ export default function WorkoutLog() {
                       </div>
                     </div>
                   ))}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {!showAllLogs && hasMoreLogs && (
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => setShowAllLogs(true)}
+          >
+            <ChevronDown className="mr-2 h-4 w-4" />
+            Show More Logs
+          </Button>
+        )}
       </div>
     </div>
   );
