@@ -50,7 +50,7 @@ export default function Sidebar() {
         )}
       >
         <SidebarHeader className={cn(
-          "flex items-center h-16 px-4 border-b border-border",
+          "flex items-center h-16 px-4 border-b border-border bg-background",
           isMobile && "mt-14" // Add margin-top when mobile to account for top nav
         )}>
           <div className="flex-1 min-w-0">
