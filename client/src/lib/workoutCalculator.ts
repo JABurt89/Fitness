@@ -1,6 +1,7 @@
 /**
  * Calculates the estimated one-rep max (1RM) based on workout performance
- * Uses the Epley formula with a modification for multiple sets
+ * Formula: 1RM = W × [1 + 0.025 × R] × (1.025)^(S – 1)
+ * where W is weight used, R is reps, and S is sets
  */
 export function calculateOneRM(
   weight: number,
@@ -8,18 +9,19 @@ export function calculateOneRM(
   completedSets: number,
   failedRep: number = 0
 ): number {
-  // Base 1RM calculation using Epley formula: 1RM = weight * (1 + reps/30)
-  const baseOneRM = weight * (1 + targetReps/30);
+  // Base 1RM calculation: W × [1 + 0.025 × R]
+  const baseOneRM = weight * (1 + 0.025 * targetReps);
 
-  // Apply sets multiplier (each additional set adds 2.5% to the total)
-  const setsMultiplier = 1 + ((completedSets - 1) * 0.025);
+  // Sets multiplier: (1.025)^(S – 1)
+  const setsMultiplier = Math.pow(1.025, completedSets - 1);
 
   // Calculate final 1RM
   let finalOneRM = baseOneRM * setsMultiplier;
 
   // If there was a failed set, calculate the partial contribution
   if (failedRep > 0) {
-    const partialSetContribution = (failedRep / targetReps) * (baseOneRM * (1 + (completedSets * 0.025) - setsMultiplier));
+    const nextSetMultiplier = Math.pow(1.025, completedSets);
+    const partialSetContribution = (failedRep / targetReps) * (baseOneRM * (nextSetMultiplier - setsMultiplier));
     finalOneRM += partialSetContribution;
   }
 
