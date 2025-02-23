@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { Exercise, WorkoutLog } from "@shared/schema";
+import type { Exercise } from "@shared/schema";
+import { automaticWorkoutLogSchema } from "@shared/schema";
 import type { WorkoutSuggestion } from "@/lib/workoutCalculator";
 import { Check, X, Plus, Minus } from "lucide-react";
 
@@ -13,39 +14,29 @@ interface ExerciseLoggerProps {
   exercise: Exercise;
   suggestion?: WorkoutSuggestion;
   onComplete: () => void;
-  isManualEntry?: boolean;
 }
 
 export default function ExerciseLogger({ 
   exercise, 
   suggestion, 
   onComplete,
-  isManualEntry = false 
 }: ExerciseLoggerProps) {
   const { toast } = useToast();
   const [sets, setSets] = useState<Array<{ completed: boolean; failedRep?: number }>>([]);
 
   useEffect(() => {
-    console.log('ExerciseLogger mounted with isManualEntry:', isManualEntry, typeof isManualEntry);
-    const initialSets = [{ completed: false }];
+    const initialSets = Array(suggestion?.sets || 3).fill({ completed: false });
     setSets(initialSets);
-  }, [isManualEntry]);
+  }, [suggestion?.sets]);
 
   const logWorkout = useMutation({
-    mutationFn: async (log: Omit<WorkoutLog, "id" | "date">) => {
-      console.log('Attempting to log workout with data:', {
-        ...log,
-        isManualEntry,
-        isManualEntryType: typeof isManualEntry
-      });
+    mutationFn: async (data: any) => {
       try {
-        const response = await apiRequest('POST', '/api/workout-logs', {
-          ...log,
-          isManualEntry
-        });
-        return response;
+        // Validate with automatic schema
+        const validatedData = automaticWorkoutLogSchema.parse(data);
+        return await apiRequest('POST', '/api/workout-logs', validatedData);
       } catch (error) {
-        console.error('Mutation error details:', error);
+        console.error('Validation error:', error);
         throw error;
       }
     },
@@ -55,18 +46,10 @@ export default function ExerciseLogger({
       onComplete();
     },
     onError: (error) => {
-      console.error('Workout log error details:', {
-        error,
-        message: error instanceof Error ? error.message : "Unknown error",
-        response: error instanceof Error ? (error as any).response?.data : undefined,
-        isManualEntry,
-        isManualEntryType: typeof isManualEntry
-      });
+      console.error('Failed to log workout:', error);
       toast({
         title: "Failed to log workout",
-        description: error instanceof Error 
-          ? `Error: ${error.message}` 
-          : "Unknown error occurred",
+        description: error instanceof Error ? error.message : "Unknown error",
         variant: "destructive"
       });
     }
@@ -76,13 +59,6 @@ export default function ExerciseLogger({
     const newSets = [...sets];
     newSets[index] = { completed, failedRep };
     setSets(newSets);
-
-    console.log('Updated sets:', {
-      index,
-      completed,
-      failedRep,
-      newSets
-    });
   };
 
   const addSet = () => {
@@ -90,17 +66,14 @@ export default function ExerciseLogger({
   };
 
   const removeSet = () => {
-    if (sets.length > 1) {
+    if (sets.length > 3) {
       setSets(sets.slice(0, -1));
     }
   };
 
   const handleSubmit = () => {
     const completedSets = sets.filter(set => set.completed).length;
-    console.log('Completed sets count:', completedSets);
-    console.log('isManualEntry value:', isManualEntry, typeof isManualEntry);
-
-    if (completedSets === 0 && !isManualEntry) {
+    if (completedSets === 0) {
       toast({
         title: "No sets completed",
         description: "Please complete at least one set before logging the workout",
@@ -111,19 +84,8 @@ export default function ExerciseLogger({
 
     const failedRep = sets.find(set => !set.completed)?.failedRep ?? 0;
     const weight = suggestion?.weight ?? 0;
-    const targetReps = suggestion?.reps ?? 1;
+    const targetReps = suggestion?.reps ?? 0;
     const calculatedOneRM = suggestion?.estimatedOneRM ?? weight;
-
-    console.log('Preparing workout data:', {
-      exercise: exercise.name,
-      weight,
-      completedSets,
-      targetReps,
-      failedRep,
-      calculatedOneRM,
-      isManualEntry,
-      isManualEntryType: typeof isManualEntry
-    });
 
     const workoutData = {
       exercise: exercise.name,
@@ -132,10 +94,7 @@ export default function ExerciseLogger({
       targetReps,
       failedRep,
       calculatedOneRM,
-      isManualEntry
     };
-
-    console.log('Final workout data before mutation:', workoutData);
 
     logWorkout.mutate(workoutData);
   };
@@ -155,7 +114,7 @@ export default function ExerciseLogger({
       <CardContent>
         <div className="space-y-4">
           <div className="flex justify-end gap-2 mb-4">
-            <Button variant="outline" size="sm" onClick={removeSet} disabled={sets.length <= 1}>
+            <Button variant="outline" size="sm" onClick={removeSet} disabled={sets.length <= 3}>
               <Minus className="w-4 h-4" />
               <span className="ml-2">Remove Set</span>
             </Button>

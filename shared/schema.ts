@@ -31,94 +31,58 @@ export const workoutLogs = pgTable("workout_logs", {
   calculatedOneRM: numeric("calculated_one_rm").notNull(),
 });
 
-export const setLogs = pgTable("set_logs", {
-  id: serial("id").primaryKey(),
-  workoutLogId: integer("workout_log_id").notNull(),
-  setNumber: integer("set_number").notNull(),
-  isSuccess: integer("is_success").notNull(),
-  actualReps: integer("actual_reps"),
-  notes: text("notes"),
-});
-
 export const weightLog = pgTable("weight_log", {
   id: serial("id").primaryKey(),
   date: timestamp("date").notNull().defaultNow(),
   weight: numeric("weight").notNull(),
 });
 
-// Schema definitions
+// Basic schemas
 export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays);
-
-// Base validation rules that apply to all workout logs
-const baseWorkoutLogValidation = {
-  exercise: z.string().min(1, "Exercise name is required"),
-  completedSets: z.number()
-    .int("Completed sets must be an integer")
-    .nonnegative("Completed sets cannot be negative"),
-  failedRep: z.number()
-    .int("Failed rep must be an integer")
-    .nonnegative("Failed rep cannot be negative"),
-  targetReps: z.number()
-    .int("Target reps must be an integer")
-    .positive("Target reps must be greater than 0"),
-  weight: z.number()
-    .nonnegative("Weight cannot be negative"),
-  calculatedOneRM: z.number()
-    .nonnegative("Calculated 1RM cannot be negative"),
-  date: z.date().or(z.string().transform(val => new Date(val))).optional(),
-  isManualEntry: z.boolean(),
-};
-
-// Create the workout log schema with conditional validation
-export const workoutLogSchema = z.object(baseWorkoutLogValidation)
-  .superRefine((data, ctx) => {
-    console.log('SuperRefine validation:', {
-      data,
-      isManualEntry: data.isManualEntry,
-      typeofIsManualEntry: typeof data.isManualEntry
-    });
-
-    // Skip validation for manual entries
-    if (data.isManualEntry === true) {
-      console.log('Manual entry detected, skipping additional validation');
-      return;
-    }
-
-    // Apply automatic entry validation rules
-    if (data.completedSets < 3) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Completed sets must be at least 3 for automatic entries",
-        path: ["completedSets"]
-      });
-    }
-  })
-  .transform(data => {
-    console.log('Schema transform:', {
-      beforeTransform: data,
-      isManualEntry: data.isManualEntry,
-      typeofIsManualEntry: typeof data.isManualEntry
-    });
-
-    return {
-      ...data,
-      date: data.date || new Date(),
-      isManualEntry: Boolean(data.isManualEntry)
-    };
-  });
-
-export const setLogSchema = createInsertSchema(setLogs);
 export const weightLogSchema = createInsertSchema(weightLog);
 
+// Base workout log validation - common fields with basic type checking
+const baseWorkoutLogFields = {
+  exercise: z.string().min(1, "Exercise name is required"),
+  weight: z.number().nonnegative("Weight cannot be negative"),
+  targetReps: z.number().int().positive("Target reps must be greater than 0"),
+  completedSets: z.number().int().nonnegative("Completed sets cannot be negative"),
+  failedRep: z.number().int().nonnegative("Failed rep cannot be negative"),
+  calculatedOneRM: z.number().nonnegative("Calculated 1RM cannot be negative"),
+  date: z.date().or(z.string().transform(val => new Date(val))).optional(),
+};
+
+// Manual entry schema - only basic validation
+export const manualWorkoutLogSchema = z.object(baseWorkoutLogFields)
+  .transform(data => ({
+    ...data,
+    date: data.date || new Date()
+  }));
+
+// Automatic entry schema - includes exercise parameter validation
+export const automaticWorkoutLogSchema = z.object(baseWorkoutLogFields)
+  .extend({
+    // Add exercise-specific validation
+    completedSets: z.number()
+      .int()
+      .min(3, "Automated workouts require at least 3 sets"),
+  })
+  .transform(data => ({
+    ...data,
+    date: data.date || new Date()
+  }));
+
+// Export types
 export type Exercise = typeof exercises.$inferSelect;
 export type WorkoutDay = typeof workoutDays.$inferSelect;
 export type WorkoutLog = typeof workoutLogs.$inferSelect;
-export type SetLog = typeof setLogs.$inferSelect;
 export type WeightLog = typeof weightLog.$inferSelect;
 
 export type InsertExercise = z.infer<typeof exerciseSchema>;
 export type InsertWorkoutDay = z.infer<typeof workoutDaySchema>;
-export type InsertWorkoutLog = z.infer<typeof workoutLogSchema>;
-export type InsertSetLog = z.infer<typeof setLogSchema>;
+export type InsertWorkoutLog = z.infer<typeof manualWorkoutLogSchema>;
 export type InsertWeightLog = z.infer<typeof weightLogSchema>;
+
+// Helper type for automatic entries
+export type AutomaticWorkoutLog = z.infer<typeof automaticWorkoutLogSchema>;

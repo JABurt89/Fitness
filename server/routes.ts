@@ -177,72 +177,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/workout-logs", async (req, res) => {
-    logger.info(`POST /api/workout-logs - Raw request:`, {
+    logger.info(`POST /api/workout-logs - Request:`, {
       body: req.body,
-      isManualEntry: req.body.isManualEntry,
-      isManualEntryType: typeof req.body.isManualEntry,
-      headers: req.headers,
-      contentType: req.headers['content-type']
     });
 
     try {
-      // Log the data before validation
-      logger.info('Pre-validation data:', {
-        ...req.body,
-        isManualEntryPreValidation: req.body.isManualEntry,
-        isManualEntryTypePreValidation: typeof req.body.isManualEntry
-      });
-
       // Parse numeric strings to numbers
       const data = {
-        ...req.body,
+        exercise: req.body.exercise,
         completedSets: Number(req.body.completedSets),
         targetReps: Number(req.body.targetReps),
         weight: Number(req.body.weight),
         failedRep: Number(req.body.failedRep),
         calculatedOneRM: Number(req.body.calculatedOneRM),
-        isManualEntry: Boolean(req.body.isManualEntry) // Ensure boolean conversion
+        date: req.body.date ? new Date(req.body.date) : new Date(),
       };
 
-      // Log the converted data
-      logger.info('Post-conversion data:', {
-        ...data,
-        isManualEntryPostConversion: data.isManualEntry,
-        isManualEntryTypePostConversion: typeof data.isManualEntry
-      });
+      logger.info('Processed workout log data:', data);
 
-      // Validate the data
-      const result = workoutLogSchema.safeParse(data);
-      if (!result.success) {
-        logger.error('Workout log validation error:', {
-          error: result.error,
-          issues: result.error.issues,
-          receivedData: data,
-          isManualEntry: data.isManualEntry,
-          isManualEntryType: typeof data.isManualEntry
-        });
-        res.status(400).json({ 
-          error: result.error,
-          message: result.error.issues.map(issue => issue.message).join(', '),
-          receivedData: data
-        });
-        return;
-      }
+      // Create the workout log
+      const log = await storage.createWorkoutLog(data);
 
-      const log = await storage.createWorkoutLog(result.data);
-
-      logger.info('Successfully created workout log:', {
-        log,
-        isManualEntry: result.data.isManualEntry,
-        isManualEntryType: typeof result.data.isManualEntry
-      });
+      logger.info('Successfully created workout log:', log);
       res.json(log);
     } catch (error) {
       logger.error('Error creating workout log:', {
         error,
         message: error instanceof Error ? error.message : 'Unknown error',
         requestBody: req.body,
-        isManualEntry: req.body.isManualEntry
       });
       res.status(500).json({ 
         error: "Failed to create workout log",
