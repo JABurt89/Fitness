@@ -28,12 +28,14 @@ export default function Sidebar() {
 
   return (
     <UISidebar 
-      variant="sidebar"
+      variant="floating"
       collapsible={isMobile ? "offcanvas" : "icon"}
       className={cn(
-        "border-r border-border",
-        "fixed md:relative",
-        "z-40"
+        "border-r border-border bg-background",
+        "fixed left-0 top-0 bottom-0 md:sticky md:top-0",
+        "z-40 flex h-screen",
+        isMobile ? "w-[280px]" : "w-[240px]",
+        "transition-all duration-300 ease-in-out"
       )}
     >
       <SidebarHeader className="flex items-center h-16 px-4 border-b border-border">
@@ -42,7 +44,7 @@ export default function Sidebar() {
         </div>
         <SidebarTrigger className="ml-2 shrink-0" />
       </SidebarHeader>
-      <SidebarContent className="h-[calc(100vh-4rem)]">
+      <SidebarContent className="flex-1 overflow-y-auto">
         <SidebarMenu>
           {navigation.map((item) => (
             <SidebarMenuItem key={item.name}>
