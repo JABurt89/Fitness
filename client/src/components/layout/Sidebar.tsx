@@ -27,47 +27,59 @@ export default function Sidebar() {
   const isMobile = useIsMobile();
 
   return (
-    <UISidebar 
-      variant="floating"
-      collapsible={isMobile ? "offcanvas" : "icon"}
-      className={cn(
-        "border-r border-border bg-background",
-        "fixed left-0 top-0 bottom-0 md:sticky md:top-0",
-        "z-40 flex h-screen",
-        isMobile ? "w-[280px]" : "w-[240px]",
-        "transition-all duration-300 ease-in-out"
-      )}
-    >
-      <SidebarHeader className="flex items-center h-16 px-4 border-b border-border">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
+    <>
+      <UISidebar 
+        variant="floating"
+        collapsible={isMobile ? "offcanvas" : "icon"}
+        className={cn(
+          "border-r border-border bg-background",
+          "fixed left-0 top-0 bottom-0 md:sticky md:top-0",
+          "z-40 flex h-screen",
+          isMobile ? "w-[280px]" : "w-[240px]",
+          "transition-all duration-300 ease-in-out"
+        )}
+      >
+        <SidebarHeader className="flex items-center h-16 px-4 border-b border-border">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
+          </div>
+          <SidebarTrigger className="ml-2 shrink-0" />
+        </SidebarHeader>
+        <SidebarContent className="flex-1 overflow-y-auto">
+          <SidebarMenu>
+            {navigation.map((item) => (
+              <SidebarMenuItem key={item.name}>
+                <Link href={item.href}>
+                  <SidebarMenuButton
+                    isActive={location === item.href}
+                    tooltip={item.name}
+                    className={cn(
+                      "w-full",
+                      location === item.href
+                        ? "bg-accent text-accent-foreground"
+                        : "text-foreground/80 hover:bg-accent/50 hover:text-accent-foreground",
+                      "group-data-[collapsible=icon]:!p-2"
+                    )}
+                  >
+                    <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
+                    <span className="truncate group-data-[collapsible=icon]:hidden">{item.name}</span>
+                  </SidebarMenuButton>
+                </Link>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarContent>
+      </UISidebar>
+
+      {/* Mobile Navigation Bar */}
+      {isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between border-t border-border bg-background px-4 py-2">
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="h-10 w-10" />
+            <span className="font-medium">Menu</span>
+          </div>
         </div>
-        <SidebarTrigger className="ml-2 shrink-0" />
-      </SidebarHeader>
-      <SidebarContent className="flex-1 overflow-y-auto">
-        <SidebarMenu>
-          {navigation.map((item) => (
-            <SidebarMenuItem key={item.name}>
-              <Link href={item.href}>
-                <SidebarMenuButton
-                  isActive={location === item.href}
-                  tooltip={item.name}
-                  className={cn(
-                    "w-full",
-                    location === item.href
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground/80 hover:bg-accent/50 hover:text-accent-foreground",
-                    "group-data-[collapsible=icon]:!p-2"
-                  )}
-                >
-                  <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                  <span className="truncate group-data-[collapsible=icon]:hidden">{item.name}</span>
-                </SidebarMenuButton>
-              </Link>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarContent>
-    </UISidebar>
+      )}
+    </>
   );
 }
