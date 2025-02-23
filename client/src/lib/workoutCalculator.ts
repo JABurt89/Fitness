@@ -1,6 +1,6 @@
 /**
  * Calculates the estimated one-rep max (1RM) based on workout performance
- * Formula: 1RM = W × [1 + 0.025 × R] × (1.025)^(S – 1)
+ * Formula: 1RM = W × [1 + 0.025 × R] × [1 + 0.025 × (S - 1)]
  * where W is weight used, R is reps, and S is sets
  */
 export function calculateOneRM(
@@ -9,24 +9,18 @@ export function calculateOneRM(
   completedSets: number,
   failedRep: number = 0
 ): number {
-  // Base calculation: W × [1 + 0.025 × R]
-  const baseOneRM = weight * (1 + 0.025 * targetReps);
+  // Base calculation with sets multiplier: W × [1 + 0.025 × R] × [1 + 0.025 × (S - 1)]
+  const baseOneRM = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * (completedSets - 1));
 
-  // Sets multiplier: (1.025)^(S – 1)
-  const setsMultiplier = Math.pow(1.025, completedSets - 1);
-
-  // Calculate final 1RM: baseOneRM × setsMultiplier
-  let finalOneRM = baseOneRM * setsMultiplier;
-
-  // If there was a failed set, calculate the partial contribution
+  // If there was a failed set, calculate the potential 1RM with the additional set
   if (failedRep > 0) {
-    const nextSetMultiplier = Math.pow(1.025, completedSets);
-    const partialSetContribution = (failedRep / targetReps) * (baseOneRM * nextSetMultiplier - finalOneRM);
-    finalOneRM += partialSetContribution;
+    const nextSetOneRM = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * completedSets);
+    // Add the partial contribution from the failed set
+    return Number((baseOneRM + ((failedRep / targetReps) * (nextSetOneRM - baseOneRM))).toFixed(2));
   }
 
   // Round to 2 decimal places
-  return Number(finalOneRM.toFixed(2));
+  return Number(baseOneRM.toFixed(2));
 }
 
 export interface WorkoutSuggestion {
