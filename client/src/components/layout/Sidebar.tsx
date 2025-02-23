@@ -1,7 +1,15 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Dumbbell, Calendar, ClipboardList, Scale, LayoutDashboard, Calculator, Play } from "lucide-react";
-import { Sidebar as UISidebar, SidebarTrigger, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
+import { 
+  Sidebar as UISidebar, 
+  SidebarTrigger, 
+  SidebarContent, 
+  SidebarHeader, 
+  SidebarMenu, 
+  SidebarMenuItem, 
+  SidebarMenuButton 
+} from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const navigation = [
@@ -19,7 +27,7 @@ export default function Sidebar() {
   const isMobile = useIsMobile();
 
   return (
-    <UISidebar variant="sidebar" collapsible="icon">
+    <UISidebar variant="floating" collapsible="icon">
       <SidebarHeader className="flex items-center h-16 px-6 border-b border-border">
         <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
         {!isMobile && <SidebarTrigger className="ml-auto" />}
