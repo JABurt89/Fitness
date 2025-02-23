@@ -28,9 +28,13 @@ export default function Sidebar() {
 
   return (
     <UISidebar 
-      variant="sidebar" 
+      variant="sidebar"
       collapsible={isMobile ? "offcanvas" : "icon"}
-      className="border-r border-border"
+      className={cn(
+        "border-r border-border",
+        "fixed md:relative",
+        "z-40"
+      )}
     >
       <SidebarHeader className="flex items-center h-16 px-4 border-b border-border">
         <div className="flex-1 min-w-0">
@@ -50,11 +54,12 @@ export default function Sidebar() {
                     "w-full",
                     location === item.href
                       ? "bg-accent text-accent-foreground"
-                      : "text-foreground/80 hover:bg-accent/50 hover:text-accent-foreground"
+                      : "text-foreground/80 hover:bg-accent/50 hover:text-accent-foreground",
+                    "group-data-[collapsible=icon]:!p-2"
                   )}
                 >
-                  <item.icon className="w-5 h-5" aria-hidden="true" />
-                  <span>{item.name}</span>
+                  <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
+                  <span className="truncate group-data-[collapsible=icon]:hidden">{item.name}</span>
                 </SidebarMenuButton>
               </Link>
             </SidebarMenuItem>

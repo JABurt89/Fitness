@@ -20,10 +20,10 @@ function Router() {
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <div className="flex min-h-screen flex-col md:flex-row bg-background">
+      <div className="flex min-h-screen flex-col md:flex-row">
         <Sidebar />
         <main className={cn(
-          "flex-1 overflow-y-auto",
+          "flex-1 overflow-y-auto bg-background",
           "px-4 py-4 md:px-6 md:py-6",
           "w-full max-w-full h-screen",
           isMobile && "pb-16"
