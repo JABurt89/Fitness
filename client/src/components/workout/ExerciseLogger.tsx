@@ -9,7 +9,7 @@ import { calculateOneRM } from "@/lib/workoutCalculator";
 import type { Exercise } from "@shared/schema";
 import { automaticWorkoutLogSchema } from "@shared/schema";
 import type { WorkoutSuggestion } from "@/lib/workoutCalculator";
-import { Check, X, Plus, Minus } from "lucide-react";
+import { Check, X } from "lucide-react";
 import ExerciseTimer from "./ExerciseTimer";
 
 interface ExerciseLoggerProps {
@@ -29,8 +29,11 @@ export default function ExerciseLogger({
   const [activeSetIndex, setActiveSetIndex] = useState<number | null>(null);
 
   useEffect(() => {
-    const initialSets = Array(suggestion?.sets || 3).fill({ completed: false });
-    setSets(initialSets);
+    if (suggestion?.sets) {
+      // Initialize sets array with required sets plus one bonus set
+      const initialSets = Array(suggestion.sets + 1).fill({ completed: false });
+      setSets(initialSets);
+    }
   }, [suggestion?.sets]);
 
   const logWorkout = useMutation({
@@ -63,13 +66,9 @@ export default function ExerciseLogger({
     newSets[index] = { completed, failedRep };
     setSets(newSets);
 
-    if (completed) {
-      // Start timer for next set if there is one
-      const nextSetIndex = index + 1;
-      if (nextSetIndex < sets.length) {
-        setActiveSetIndex(nextSetIndex);
-        setIsTimerActive(true);
-      }
+    if (completed && index < sets.length - 1) { // Don't start timer after bonus set
+      setActiveSetIndex(index + 1);
+      setIsTimerActive(true);
     }
   };
 
@@ -78,19 +77,12 @@ export default function ExerciseLogger({
     setActiveSetIndex(null);
   };
 
-  const addSet = () => {
-    setSets([...sets, { completed: false }]);
-  };
-
-  const removeSet = () => {
-    if (sets.length > 3) {
-      setSets(sets.slice(0, -1));
-    }
-  };
-
   const handleSubmit = () => {
-    const completedSets = sets.filter(set => set.completed).length;
-    if (completedSets === 0) {
+    const mainSets = sets.slice(0, -1); // Exclude bonus set from main set count
+    const completedMainSets = mainSets.filter(set => set.completed).length;
+    const bonusSet = sets[sets.length - 1];
+
+    if (completedMainSets === 0) {
       toast({
         title: "No sets completed",
         description: "Please complete at least one set before logging the workout",
@@ -99,16 +91,21 @@ export default function ExerciseLogger({
       return;
     }
 
-    const failedRep = sets.find(set => !set.completed)?.failedRep ?? 0;
     const weight = suggestion?.weight ?? 0;
     const targetReps = suggestion?.reps ?? 0;
+    const failedRep = bonusSet.completed ? 0 : bonusSet.failedRep ?? 0;
 
-    const calculatedOneRM = calculateOneRM(weight, targetReps, completedSets, failedRep);
+    const calculatedOneRM = calculateOneRM(
+      weight,
+      targetReps,
+      completedMainSets,
+      failedRep
+    );
 
     const workoutData = {
       exercise: exercise.name,
       weight,
-      completedSets,
+      completedSets: completedMainSets,
       targetReps,
       failedRep,
       calculatedOneRM,
@@ -142,16 +139,6 @@ export default function ExerciseLogger({
               />
             </div>
           )}
-          <div className="flex justify-end gap-2 mb-4">
-            <Button variant="outline" size="sm" onClick={removeSet} disabled={sets.length <= 3}>
-              <Minus className="w-4 h-4" />
-              <span className="ml-2">Remove Set</span>
-            </Button>
-            <Button variant="outline" size="sm" onClick={addSet}>
-              <Plus className="w-4 h-4" />
-              <span className="ml-2">Add Set</span>
-            </Button>
-          </div>
           <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {sets.map((set, index) => (
               <div key={index} className="space-y-2">
@@ -162,7 +149,7 @@ export default function ExerciseLogger({
                     onClick={() => handleSetCompletion(index, true)}
                   >
                     <Check className="w-4 h-4 mr-2" />
-                    Set {index + 1}
+                    {index === sets.length - 1 ? "Bonus Set" : `Set ${index + 1}`}
                   </Button>
                   <Button
                     variant={!set.completed ? "destructive" : "outline"}
@@ -174,7 +161,7 @@ export default function ExerciseLogger({
                 {!set.completed && (
                   <Input
                     type="number"
-                    placeholder="Failed at rep"
+                    placeholder={index === sets.length - 1 ? "Bonus reps" : "Failed at rep"}
                     value={set.failedRep || ""}
                     onChange={(e) => handleSetCompletion(index, false, parseInt(e.target.value, 10))}
                   />
