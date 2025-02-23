@@ -40,7 +40,13 @@ export const weightLog = pgTable("weight_log", {
 
 // Basic schemas
 export const exerciseSchema = createInsertSchema(exercises);
-export const workoutDaySchema = createInsertSchema(workoutDays);
+
+// Create a custom schema for workout days that properly handles timestamps
+export const workoutDaySchema = createInsertSchema(workoutDays).extend({
+  lastCompleted: z.string().datetime().nullable().optional()
+    .transform(val => val ? new Date(val) : null),
+});
+
 export const weightLogSchema = createInsertSchema(weightLog);
 
 // Base workout log validation - common fields with basic type checking
