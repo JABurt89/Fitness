@@ -10,6 +10,7 @@ import type { Exercise } from "@shared/schema";
 import { automaticWorkoutLogSchema } from "@shared/schema";
 import type { WorkoutSuggestion } from "@/lib/workoutCalculator";
 import { Check, X, Plus, Minus } from "lucide-react";
+import ExerciseTimer from "./ExerciseTimer";
 
 interface ExerciseLoggerProps {
   exercise: Exercise;
@@ -24,6 +25,8 @@ export default function ExerciseLogger({
 }: ExerciseLoggerProps) {
   const { toast } = useToast();
   const [sets, setSets] = useState<Array<{ completed: boolean; failedRep?: number }>>([]);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [activeSetIndex, setActiveSetIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const initialSets = Array(suggestion?.sets || 3).fill({ completed: false });
@@ -33,7 +36,6 @@ export default function ExerciseLogger({
   const logWorkout = useMutation({
     mutationFn: async (data: any) => {
       try {
-        // Validate with automatic schema
         const validatedData = automaticWorkoutLogSchema.parse(data);
         return await apiRequest('POST', '/api/workout-logs', validatedData);
       } catch (error) {
@@ -60,6 +62,20 @@ export default function ExerciseLogger({
     const newSets = [...sets];
     newSets[index] = { completed, failedRep };
     setSets(newSets);
+
+    if (completed) {
+      // Start timer for next set if there is one
+      const nextSetIndex = index + 1;
+      if (nextSetIndex < sets.length) {
+        setActiveSetIndex(nextSetIndex);
+        setIsTimerActive(true);
+      }
+    }
+  };
+
+  const handleTimerComplete = () => {
+    setIsTimerActive(false);
+    setActiveSetIndex(null);
   };
 
   const addSet = () => {
@@ -87,7 +103,6 @@ export default function ExerciseLogger({
     const weight = suggestion?.weight ?? 0;
     const targetReps = suggestion?.reps ?? 0;
 
-    // Use the shared calculateOneRM function for consistency
     const calculatedOneRM = calculateOneRM(weight, targetReps, completedSets, failedRep);
 
     const workoutData = {
@@ -117,6 +132,16 @@ export default function ExerciseLogger({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          {isTimerActive && exercise.restTimer && (
+            <div className="mb-4">
+              <h3 className="text-sm font-medium mb-2">Rest Timer - Set {(activeSetIndex ?? 0) + 1}</h3>
+              <ExerciseTimer
+                duration={exercise.restTimer}
+                onComplete={handleTimerComplete}
+                autoStart={true}
+              />
+            </div>
+          )}
           <div className="flex justify-end gap-2 mb-4">
             <Button variant="outline" size="sm" onClick={removeSet} disabled={sets.length <= 3}>
               <Minus className="w-4 h-4" />

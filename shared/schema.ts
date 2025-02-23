@@ -10,6 +10,7 @@ export const exercises = pgTable("exercises", {
   setsRange: jsonb("sets_range").$type<[number, number]>().notNull(),
   repsRange: jsonb("reps_range").$type<[number, number]>().notNull(),
   weightIncrement: numeric("weight_increment").notNull(),
+  restTimer: integer("rest_timer").notNull().default(60), // Rest timer in seconds, default 60s
 });
 
 export const workoutDays = pgTable("workout_days", {
