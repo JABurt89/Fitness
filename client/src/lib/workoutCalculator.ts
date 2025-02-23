@@ -1,5 +1,6 @@
 /**
  * Calculates the estimated one-rep max (1RM) based on workout performance
+ * Uses the Epley formula with a modification for multiple sets
  */
 export function calculateOneRM(
   weight: number,
@@ -7,17 +8,23 @@ export function calculateOneRM(
   completedSets: number,
   failedRep: number = 0
 ): number {
-  // Calculate the base 1RM (C)
-  const C = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * (completedSets - 1));
+  // Base 1RM calculation using Epley formula: 1RM = weight * (1 + reps/30)
+  const baseOneRM = weight * (1 + targetReps/30);
 
+  // Apply sets multiplier (each additional set adds 2.5% to the total)
+  const setsMultiplier = 1 + ((completedSets - 1) * 0.025);
+
+  // Calculate final 1RM
+  let finalOneRM = baseOneRM * setsMultiplier;
+
+  // If there was a failed set, calculate the partial contribution
   if (failedRep > 0) {
-    // Calculate the potential 1RM with the additional set (F)
-    const F = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * completedSets);
-    // Add the partial contribution from the failed set
-    return C + ((failedRep / targetReps) * (F - C));
+    const partialSetContribution = (failedRep / targetReps) * (baseOneRM * (1 + (completedSets * 0.025) - setsMultiplier));
+    finalOneRM += partialSetContribution;
   }
 
-  return C;
+  // Round to 2 decimal places to avoid floating point inconsistencies
+  return Number(finalOneRM.toFixed(2));
 }
 
 export interface WorkoutSuggestion {
@@ -48,8 +55,6 @@ export function generateWorkoutSuggestions(
     customStartingWeight?: number;
   }
 ): WorkoutSuggestion[] {
-  console.log('Starting calculation with increment:', exercise.weightIncrement);
-
   // Determine minimum weight based on equipment type
   const minWeight = exercise.startingWeightType === "Custom"
     ? exercise.customStartingWeight || 0
@@ -58,16 +63,6 @@ export function generateWorkoutSuggestions(
   const startWeight = Math.max(currentOneRM * 0.7, minWeight);  // Start at 70% of 1RM or minimum weight
   const endWeight = currentOneRM * 1.3;    // Go up to 130% of 1RM
   const results: WorkoutSuggestion[] = [];
-
-  console.log('Calculation parameters:', {
-    currentOneRM,
-    minWeight,
-    startWeight,
-    endWeight,
-    setsRange: exercise.setsRange,
-    repsRange: exercise.repsRange,
-    weightIncrement: exercise.weightIncrement
-  });
 
   // Generate all possible combinations
   for (
@@ -85,8 +80,7 @@ export function generateWorkoutSuggestions(
         reps <= exercise.repsRange[1];
         reps++
       ) {
-        const increaseFactor = 1 + (sets - 1) * 0.025;
-        const estimatedOneRM = weight * (1 + 0.025 * reps) * increaseFactor;
+        const estimatedOneRM = calculateOneRM(weight, reps, sets);
 
         // Only include suggestions that lead to progressive overload
         // but are not too aggressive (within 110% of current 1RM)
@@ -99,16 +93,14 @@ export function generateWorkoutSuggestions(
             results.push({
               sets,
               reps,
-              weight: roundedWeight,
-              estimatedOneRM,
+              weight: Number(roundedWeight.toFixed(2)),
+              estimatedOneRM: Number(estimatedOneRM.toFixed(2)),
             });
           }
         }
       }
     }
   }
-
-  console.log('Generated suggestions count:', results.length);
 
   // Sort by estimated 1RM and return top 10 suggestions
   return results
@@ -147,7 +139,7 @@ export function calculateOneRMTrend(recentLogs: { calculatedOneRM: number }[]): 
   const intercept = (sumY - slope * sumX) / n;
 
   // Predict next value
-  const nextOneRM = slope * n + intercept;
+  const nextOneRM = Number((slope * n + intercept).toFixed(2));
 
   return {
     trend: slope > 0 ? "up" : slope < 0 ? "down" : "stable",

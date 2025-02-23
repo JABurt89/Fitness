@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { calculateOneRM } from "@/lib/workoutCalculator";
 import type { Exercise } from "@shared/schema";
 import { automaticWorkoutLogSchema } from "@shared/schema";
 import type { WorkoutSuggestion } from "@/lib/workoutCalculator";
@@ -85,7 +86,9 @@ export default function ExerciseLogger({
     const failedRep = sets.find(set => !set.completed)?.failedRep ?? 0;
     const weight = suggestion?.weight ?? 0;
     const targetReps = suggestion?.reps ?? 0;
-    const calculatedOneRM = suggestion?.estimatedOneRM ?? weight;
+
+    // Use the shared calculateOneRM function for consistency
+    const calculatedOneRM = calculateOneRM(weight, targetReps, completedSets, failedRep);
 
     const workoutData = {
       exercise: exercise.name,
@@ -94,6 +97,7 @@ export default function ExerciseLogger({
       targetReps,
       failedRep,
       calculatedOneRM,
+      date: new Date().toISOString()
     };
 
     logWorkout.mutate(workoutData);
