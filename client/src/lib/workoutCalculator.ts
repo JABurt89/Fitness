@@ -36,16 +36,9 @@ export interface WorkoutSuggestion {
   estimatedOneRM: number;
 }
 
-const STARTING_WEIGHTS = {
-  "Barbell": 20,
-  "EZ Bar": 12,
-  "Dumbbell": 2.5,
-  "Smith Machine": 15,
-  "Custom": 0
-} as const;
-
 /**
  * Generates workout suggestions based on current 1RM and exercise parameters
+ * Orders suggestions from smallest increase in 1RM to largest
  */
 export function generateWorkoutSuggestions(
   currentOneRM: number,
@@ -84,11 +77,11 @@ export function generateWorkoutSuggestions(
       ) {
         const estimatedOneRM = calculateOneRM(weight, reps, sets);
 
-        // Only include suggestions that lead to progressive overload
-        // but are not too aggressive (within 110% of current 1RM)
+        // Only include suggestions that would increase the 1RM
+        // and are not too aggressive (within 110% of current 1RM)
         if (
           estimatedOneRM > currentOneRM &&
-          estimatedOneRM < currentOneRM * 1.1
+          estimatedOneRM <= currentOneRM * 1.1
         ) {
           const roundedWeight = Math.round(weight / exercise.weightIncrement) * exercise.weightIncrement;
           if (roundedWeight >= minWeight) {
@@ -104,9 +97,9 @@ export function generateWorkoutSuggestions(
     }
   }
 
-  // Sort by estimated 1RM in descending order and return top 10 suggestions
+  // Sort by how close the estimated 1RM is to the current 1RM
   return results
-    .sort((a, b) => b.estimatedOneRM - a.estimatedOneRM)  // Changed to descending order
+    .sort((a, b) => a.estimatedOneRM - b.estimatedOneRM)
     .slice(0, 10);
 }
 
@@ -148,3 +141,11 @@ export function calculateOneRMTrend(recentLogs: { calculatedOneRM: number }[]): 
     nextOneRM,
   };
 }
+
+const STARTING_WEIGHTS = {
+  "Barbell": 20,
+  "EZ Bar": 12,
+  "Dumbbell": 2.5,
+  "Smith Machine": 15,
+  "Custom": 0
+} as const;
