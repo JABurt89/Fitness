@@ -1,7 +1,10 @@
 /**
  * Calculates the estimated one-rep max (1RM) based on workout performance
- * Formula: 1RM = W × [1 + 0.025 × R] × [1 + 0.025 × (S - 1)]
- * where W is weight used, R is reps, and S is sets
+ * Formula for completed sets: 1RM = W × [1 + 0.025 × R] × [1 + 0.025 × (S - 1)]
+ * For incomplete set with F reps (F < R):
+ * C = W × [1 + 0.025 × R] × [1 + 0.025 × (S - 1)]
+ * F_full = W × [1 + 0.025 × R] × [1 + 0.025 × S]
+ * 1RM = C + (F/R) × (F_full - C)
  */
 export function calculateOneRM(
   weight: number,
@@ -9,18 +12,18 @@ export function calculateOneRM(
   completedSets: number,
   failedRep: number = 0
 ): number {
-  // Base calculation with sets multiplier: W × [1 + 0.025 × R] × [1 + 0.025 × (S - 1)]
-  const baseOneRM = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * (completedSets - 1));
+  // Base calculation for completed sets
+  const C = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * (completedSets - 1));
 
-  // If there was a failed set, calculate the potential 1RM with the additional set
+  // If there was a failed set, calculate the interpolated 1RM
   if (failedRep > 0) {
-    const nextSetOneRM = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * completedSets);
-    // Add the partial contribution from the failed set
-    return Number((baseOneRM + ((failedRep / targetReps) * (nextSetOneRM - baseOneRM))).toFixed(2));
+    const F_full = weight * (1 + 0.025 * targetReps) * (1 + 0.025 * completedSets);
+    // Interpolate between C and F_full based on how many reps were completed
+    return Number((C + ((failedRep / targetReps) * (F_full - C))).toFixed(2));
   }
 
   // Round to 2 decimal places
-  return Number(baseOneRM.toFixed(2));
+  return Number(C.toFixed(2));
 }
 
 export interface WorkoutSuggestion {
