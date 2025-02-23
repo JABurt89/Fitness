@@ -13,23 +13,22 @@ import Sidebar from "@/components/layout/Sidebar";
 import FutureWorkout from "@/pages/FutureWorkout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils"; // Added import for cn function
+
 
 function Router() {
   const isMobile = useIsMobile();
 
   return (
     <SidebarProvider defaultOpen={!isMobile}>
-      <div className="flex min-h-screen flex-col md:flex-row">
+      <div className="flex min-h-screen flex-col md:flex-row bg-background">
         <Sidebar />
-        <main className={`
-          flex-1 
-          overflow-y-auto 
-          bg-background 
-          ${isMobile ? 'px-4 py-4' : 'p-6'}
-          ${isMobile ? 'pb-16' : ''} 
-          w-full
-          max-w-full
-        `}>
+        <main className={cn(
+          "flex-1 overflow-y-auto",
+          "px-4 py-4 md:p-6",
+          "w-full max-w-full",
+          isMobile && "pb-16"
+        )}>
           <div className="mx-auto max-w-7xl w-full">
             <Switch>
               <Route path="/" component={Dashboard} />

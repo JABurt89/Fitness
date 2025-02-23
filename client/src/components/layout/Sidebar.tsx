@@ -8,7 +8,7 @@ import {
   SidebarHeader, 
   SidebarMenu, 
   SidebarMenuItem, 
-  SidebarMenuButton 
+  SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -27,10 +27,10 @@ export default function Sidebar() {
   const isMobile = useIsMobile();
 
   return (
-    <UISidebar variant="floating" collapsible="icon">
+    <UISidebar variant="inset" collapsible="offcanvas">
       <SidebarHeader className="flex items-center h-16 px-6 border-b border-border">
         <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
-        {!isMobile && <SidebarTrigger className="ml-auto" />}
+        <SidebarTrigger className="ml-auto" />
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
