@@ -104,9 +104,9 @@ export function generateWorkoutSuggestions(
     }
   }
 
-  // Sort by estimated 1RM and return top 10 suggestions
+  // Sort by estimated 1RM in descending order and return top 10 suggestions
   return results
-    .sort((a, b) => a.estimatedOneRM - b.estimatedOneRM)
+    .sort((a, b) => b.estimatedOneRM - a.estimatedOneRM)  // Changed to descending order
     .slice(0, 10);
 }
 
