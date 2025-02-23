@@ -46,31 +46,16 @@ export const weightLog = pgTable("weight_log", {
   weight: numeric("weight").notNull(),
 });
 
-// Schema definitions with detailed validation logging
+// Schema definitions
 export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays);
 
-export const workoutLogSchema = z.object({
+// Base validation rules that apply to all workout logs
+const baseWorkoutLogValidation = {
   exercise: z.string().min(1, "Exercise name is required"),
   completedSets: z.number()
     .int("Completed sets must be an integer")
-    .nonnegative("Completed sets cannot be negative")
-    .refine((val, ctx) => {
-      console.log('Validating completedSets:', {
-        value: val,
-        isManualEntry: ctx.parent.isManualEntry,
-        typeofIsManualEntry: typeof ctx.parent.isManualEntry,
-        parentData: ctx.parent
-      });
-
-      // Skip the minimum sets check if isManualEntry is true
-      if (ctx.parent.isManualEntry === true) {
-        console.log('Manual entry detected, skipping minimum sets validation');
-        return true;
-      }
-      console.log('Not manual entry, applying minimum sets validation');
-      return val >= 3;
-    }, { message: "Completed sets must be at least 3" }),
+    .nonnegative("Completed sets cannot be negative"),
   failedRep: z.number()
     .int("Failed rep must be an integer")
     .nonnegative("Failed rep cannot be negative"),
@@ -82,19 +67,46 @@ export const workoutLogSchema = z.object({
   calculatedOneRM: z.number()
     .nonnegative("Calculated 1RM cannot be negative"),
   date: z.date().or(z.string().transform(val => new Date(val))).optional(),
-  isManualEntry: z.boolean().default(false),
-}).transform(data => {
-  console.log('Schema transform data:', {
-    ...data,
-    isManualEntry: data.isManualEntry,
-    typeofIsManualEntry: typeof data.isManualEntry
+  isManualEntry: z.boolean(),
+};
+
+// Create the workout log schema with conditional validation
+export const workoutLogSchema = z.object(baseWorkoutLogValidation)
+  .superRefine((data, ctx) => {
+    console.log('SuperRefine validation:', {
+      data,
+      isManualEntry: data.isManualEntry,
+      typeofIsManualEntry: typeof data.isManualEntry
+    });
+
+    // Skip validation for manual entries
+    if (data.isManualEntry === true) {
+      console.log('Manual entry detected, skipping additional validation');
+      return;
+    }
+
+    // Apply automatic entry validation rules
+    if (data.completedSets < 3) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Completed sets must be at least 3 for automatic entries",
+        path: ["completedSets"]
+      });
+    }
+  })
+  .transform(data => {
+    console.log('Schema transform:', {
+      beforeTransform: data,
+      isManualEntry: data.isManualEntry,
+      typeofIsManualEntry: typeof data.isManualEntry
+    });
+
+    return {
+      ...data,
+      date: data.date || new Date(),
+      isManualEntry: Boolean(data.isManualEntry)
+    };
   });
-  return {
-    ...data,
-    date: data.date || new Date(),
-    isManualEntry: Boolean(data.isManualEntry)
-  };
-});
 
 export const setLogSchema = createInsertSchema(setLogs);
 export const weightLogSchema = createInsertSchema(weightLog);
