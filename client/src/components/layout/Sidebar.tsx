@@ -30,12 +30,15 @@ export default function Sidebar() {
     <UISidebar 
       variant="sidebar" 
       collapsible={isMobile ? "offcanvas" : "icon"}
+      className="border-r border-border"
     >
-      <SidebarHeader className="flex items-center h-16 px-6 border-b border-border">
-        <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
-        <SidebarTrigger className="ml-auto" />
+      <SidebarHeader className="flex items-center h-16 px-4 border-b border-border">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
+        </div>
+        <SidebarTrigger className="ml-2 shrink-0" />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="h-[calc(100vh-4rem)]">
         <SidebarMenu>
           {navigation.map((item) => (
             <SidebarMenuItem key={item.name}>

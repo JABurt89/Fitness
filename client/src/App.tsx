@@ -13,8 +13,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import FutureWorkout from "@/pages/FutureWorkout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils"; // Added import for cn function
-
+import { cn } from "@/lib/utils";
 
 function Router() {
   const isMobile = useIsMobile();
@@ -25,8 +24,8 @@ function Router() {
         <Sidebar />
         <main className={cn(
           "flex-1 overflow-y-auto",
-          "px-4 py-4 md:p-6",
-          "w-full max-w-full",
+          "px-4 py-4 md:px-6 md:py-6",
+          "w-full max-w-full h-screen",
           isMobile && "pb-16"
         )}>
           <div className="mx-auto max-w-7xl w-full">
