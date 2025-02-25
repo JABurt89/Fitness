@@ -34,20 +34,23 @@ export default function Sidebar() {
     <>
       {/* Top Navigation Bar for Mobile */}
       {isMobile && (
-        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border bg-background px-4 py-2">
+        <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border bg-sidebar px-4 py-2">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="h-10 w-10" />
-            <span className="font-medium">Workout Tracker</span>
+            <span className="font-medium text-sidebar-foreground">Workout Tracker</span>
           </div>
         </div>
       )}
 
       {isMobile ? (
         <Sheet open={openMobile} onOpenChange={setOpenMobile}>
-          <SheetContent side="left" className="w-[280px] p-0 bg-sidebar">
-            <div className="flex h-full w-full flex-col">
-              <div className="flex items-center justify-between h-16 px-4 border-b border-border">
-                <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
+          <SheetContent
+            side="left"
+            className="w-[280px] p-0 bg-sidebar border-r border-sidebar-border"
+          >
+            <div className="flex h-full w-full flex-col bg-sidebar">
+              <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border bg-sidebar">
+                <h1 className="text-xl font-bold text-sidebar-foreground truncate">Workout Tracker</h1>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -58,7 +61,7 @@ export default function Sidebar() {
                   <span className="sr-only">Close Menu</span>
                 </Button>
               </div>
-              <SidebarContent className="flex-1 overflow-y-auto bg-transparent p-4">
+              <SidebarContent className="flex-1 overflow-y-auto bg-sidebar p-4">
                 <SidebarMenu>
                   {navigation.map((item) => (
                     <SidebarMenuItem key={item.name}>
@@ -69,8 +72,8 @@ export default function Sidebar() {
                           className={cn(
                             "w-full",
                             location === item.href
-                              ? "bg-accent text-accent-foreground"
-                              : "text-foreground/80 hover:bg-accent/50 hover:text-accent-foreground",
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                             "group-data-[collapsible=icon]:!p-2"
                           )}
                         >
@@ -86,24 +89,24 @@ export default function Sidebar() {
           </SheetContent>
         </Sheet>
       ) : (
-        <UISidebar
+        <UISidebar 
           variant="floating"
           collapsible="icon"
           className={cn(
-            "border-r border-border bg-sidebar",
+            "border-r border-sidebar-border bg-sidebar",
             "fixed left-0 top-0 bottom-0 md:sticky md:top-0",
             "z-40 flex h-screen",
             "w-[240px]",
             "transition-all duration-300 ease-in-out"
           )}
         >
-          <SidebarHeader className="flex items-center h-16 px-4 border-b border-border">
-            <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-              <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
+          <SidebarHeader className="flex items-center h-16 px-4 border-b border-sidebar-border bg-sidebar">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold text-sidebar-foreground truncate">Workout Tracker</h1>
             </div>
             <SidebarTrigger className="ml-2 shrink-0" />
           </SidebarHeader>
-          <SidebarContent className="flex-1 overflow-y-auto bg-transparent p-4">
+          <SidebarContent className="flex-1 overflow-y-auto bg-sidebar p-4">
             <SidebarMenu>
               {navigation.map((item) => (
                 <SidebarMenuItem key={item.name}>
@@ -114,8 +117,8 @@ export default function Sidebar() {
                       className={cn(
                         "w-full",
                         location === item.href
-                          ? "bg-accent text-accent-foreground"
-                          : "text-foreground/80 hover:bg-accent/50 hover:text-accent-foreground",
+                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                         "group-data-[collapsible=icon]:!p-2"
                       )}
                     >
