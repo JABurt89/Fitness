@@ -2,19 +2,29 @@ import { pgTable, text, serial, numeric, timestamp, jsonb, integer } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Database table definitions remain unchanged
+// User table for authentication
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// Modified tables to include user references
 export const exercises = pgTable("exercises", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
   name: text("name").notNull(),
   bodyPart: text("body_part").notNull(),
   setsRange: jsonb("sets_range").$type<[number, number]>().notNull(),
   repsRange: jsonb("reps_range").$type<[number, number]>().notNull(),
   weightIncrement: numeric("weight_increment").notNull(),
-  restTimer: integer("rest_timer").notNull().default(60), // Rest timer in seconds, default 60s
+  restTimer: integer("rest_timer").notNull().default(60),
 });
 
 export const workoutDays = pgTable("workout_days", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
   dayName: text("day_name").notNull(),
   exercises: jsonb("exercises").$type<string[]>().notNull(),
   displayOrder: integer("display_order").notNull().default(0),
@@ -23,6 +33,7 @@ export const workoutDays = pgTable("workout_days", {
 
 export const workoutLogs = pgTable("workout_logs", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
   date: timestamp("date").notNull().defaultNow(),
   exercise: text("exercise").notNull(),
   completedSets: integer("completed_sets").notNull(),  
@@ -34,23 +45,27 @@ export const workoutLogs = pgTable("workout_logs", {
 
 export const weightLog = pgTable("weight_log", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
   date: timestamp("date").notNull().defaultNow(),
   weight: numeric("weight").notNull(),
 });
 
-// Basic schemas
-export const exerciseSchema = createInsertSchema(exercises);
+// Authentication schemas
+export const userSchema = createInsertSchema(users).extend({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
-// Create a custom schema for workout days that properly handles timestamps
+// Other schemas remain unchanged but will include userId in their types
+export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays).extend({
   lastCompleted: z.string().datetime().nullable().optional()
     .transform(val => val ? new Date(val) : null),
 });
-
 export const weightLogSchema = createInsertSchema(weightLog);
 
-// Base workout log validation - common fields with basic type checking
+// Base workout log validation
 const baseWorkoutLogFields = {
+  userId: z.number(),
   exercise: z.string().min(1, "Exercise name is required"),
   weight: z.number().nonnegative("Weight cannot be negative"),
   targetReps: z.number().int().positive("Target reps must be greater than 0"),
@@ -60,17 +75,14 @@ const baseWorkoutLogFields = {
   date: z.date().or(z.string().transform(val => new Date(val))).optional(),
 };
 
-// Manual entry schema - only basic validation
 export const manualWorkoutLogSchema = z.object(baseWorkoutLogFields)
   .transform(data => ({
     ...data,
     date: data.date || new Date()
   }));
 
-// Automatic entry schema - includes exercise parameter validation
 export const automaticWorkoutLogSchema = z.object(baseWorkoutLogFields)
   .extend({
-    // Add exercise-specific validation
     completedSets: z.number()
       .int()
       .min(3, "Automated workouts require at least 3 sets"),
@@ -81,11 +93,13 @@ export const automaticWorkoutLogSchema = z.object(baseWorkoutLogFields)
   }));
 
 // Export types
+export type User = typeof users.$inferSelect;
 export type Exercise = typeof exercises.$inferSelect;
 export type WorkoutDay = typeof workoutDays.$inferSelect;
 export type WorkoutLog = typeof workoutLogs.$inferSelect;
 export type WeightLog = typeof weightLog.$inferSelect;
 
+export type InsertUser = z.infer<typeof userSchema>;
 export type InsertExercise = z.infer<typeof exerciseSchema>;
 export type InsertWorkoutDay = z.infer<typeof workoutDaySchema>;
 export type InsertWorkoutLog = z.infer<typeof manualWorkoutLogSchema>;

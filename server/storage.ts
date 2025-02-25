@@ -7,126 +7,156 @@ import {
   type InsertWorkoutDay,
   type InsertWorkoutLog,
   type InsertWeightLog,
+  type User,
+  type InsertUser,
   exercises,
   workoutDays,
   workoutLogs,
   weightLog,
+  users,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, inArray } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { logger } from "./logger";
 
 export interface IStorage {
-  // Exercise operations
-  getAllExercises(): Promise<Exercise[]>;
-  getExercise(id: number): Promise<Exercise | undefined>;
-  createExercise(exercise: InsertExercise): Promise<Exercise>;
-  updateExercise(id: number, exercise: Partial<InsertExercise>): Promise<Exercise>;
-  deleteExercise(id: number): Promise<void>;
+  // User operations
+  createUser(user: InsertUser): Promise<User>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUser(id: number): Promise<User | undefined>;
 
-  // Workout day operations
-  getAllWorkoutDays(): Promise<WorkoutDay[]>;
-  getWorkoutDay(id: number): Promise<WorkoutDay | undefined>;
-  createWorkoutDay(workoutDay: InsertWorkoutDay): Promise<WorkoutDay>;
-  updateWorkoutDay(id: number, workoutDay: Partial<InsertWorkoutDay>): Promise<WorkoutDay>;
-  deleteWorkoutDay(id: number): Promise<void>;
-  reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void>;
+  // Exercise operations - now scoped to user
+  getAllExercises(userId: number): Promise<Exercise[]>;
+  getExercise(userId: number, id: number): Promise<Exercise | undefined>;
+  createExercise(userId: number, exercise: Omit<InsertExercise, "userId">): Promise<Exercise>;
+  updateExercise(userId: number, id: number, exercise: Partial<InsertExercise>): Promise<Exercise>;
+  deleteExercise(userId: number, id: number): Promise<void>;
 
-  // Workout log operations
-  getAllWorkoutLogs(): Promise<WorkoutLog[]>;
-  getWorkoutLogsByExercise(exerciseName: string): Promise<WorkoutLog[]>;
-  createWorkoutLog(workoutLog: InsertWorkoutLog): Promise<WorkoutLog>;
-  deleteWorkoutLog(id: number): Promise<void>; // Added delete method
+  // Workout day operations - now scoped to user
+  getAllWorkoutDays(userId: number): Promise<WorkoutDay[]>;
+  getWorkoutDay(userId: number, id: number): Promise<WorkoutDay | undefined>;
+  createWorkoutDay(userId: number, workoutDay: Omit<InsertWorkoutDay, "userId">): Promise<WorkoutDay>;
+  updateWorkoutDay(userId: number, id: number, workoutDay: Partial<InsertWorkoutDay>): Promise<WorkoutDay>;
+  deleteWorkoutDay(userId: number, id: number): Promise<void>;
+  reorderWorkoutDays(userId: number, updates: { id: number; displayOrder: number }[]): Promise<void>;
 
-  // Weight log operations
-  getAllWeightLogs(): Promise<WeightLog[]>;
-  createWeightLog(weightLogData: InsertWeightLog): Promise<WeightLog>;
+  // Workout log operations - now scoped to user
+  getAllWorkoutLogs(userId: number): Promise<WorkoutLog[]>;
+  getWorkoutLogsByExercise(userId: number, exerciseName: string): Promise<WorkoutLog[]>;
+  createWorkoutLog(userId: number, workoutLog: Omit<InsertWorkoutLog, "userId">): Promise<WorkoutLog>;
+  deleteWorkoutLog(userId: number, id: number): Promise<void>;
+
+  // Weight log operations - now scoped to user
+  getAllWeightLogs(userId: number): Promise<WeightLog[]>;
+  createWeightLog(userId: number, weightLogData: Omit<InsertWeightLog, "userId">): Promise<WeightLog>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // Exercise operations
-  async getAllExercises(): Promise<Exercise[]> {
-    return await db.query.exercises.findMany();
-  }
-
-  async getExercise(id: number): Promise<Exercise | undefined> {
-    return await db.query.exercises.findFirst({
-      where: eq(exercises.id, id)
-    });
-  }
-
-  async createExercise(exercise: InsertExercise): Promise<Exercise> {
-    const [created] = await db.insert(exercises).values(exercise).returning();
+  // User operations
+  async createUser(user: InsertUser): Promise<User> {
+    const [created] = await db.insert(users).values(user).returning();
     return created;
   }
 
-  async updateExercise(id: number, exercise: Partial<InsertExercise>): Promise<Exercise> {
-    const [updated] = await db
-      .update(exercises)
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  // Exercise operations
+  async getAllExercises(userId: number): Promise<Exercise[]> {
+    return await db.select().from(exercises).where(eq(exercises.userId, userId));
+  }
+
+  async getExercise(userId: number, id: number): Promise<Exercise | undefined> {
+    const [exercise] = await db.select().from(exercises)
+      .where(and(eq(exercises.id, id), eq(exercises.userId, userId)));
+    return exercise;
+  }
+
+  async createExercise(userId: number, exercise: Omit<InsertExercise, "userId">): Promise<Exercise> {
+    const [created] = await db.insert(exercises)
+      .values({ ...exercise, userId })
+      .returning();
+    return created;
+  }
+
+  async updateExercise(userId: number, id: number, exercise: Partial<InsertExercise>): Promise<Exercise> {
+    const [updated] = await db.update(exercises)
       .set(exercise)
-      .where(eq(exercises.id, id))
+      .where(and(eq(exercises.id, id), eq(exercises.userId, userId)))
       .returning();
     if (!updated) throw new Error("Exercise not found");
     return updated;
   }
 
-  async deleteExercise(id: number): Promise<void> {
-    await db.delete(exercises).where(eq(exercises.id, id));
+  async deleteExercise(userId: number, id: number): Promise<void> {
+    await db.delete(exercises)
+      .where(and(eq(exercises.id, id), eq(exercises.userId, userId)));
   }
 
   // Workout day operations
-  async getAllWorkoutDays(): Promise<WorkoutDay[]> {
-    return await db.query.workoutDays.findMany();
+  async getAllWorkoutDays(userId: number): Promise<WorkoutDay[]> {
+    return await db.select().from(workoutDays)
+      .where(eq(workoutDays.userId, userId));
   }
 
-  async getWorkoutDay(id: number): Promise<WorkoutDay | undefined> {
-    return await db.query.workoutDays.findFirst({
-      where: eq(workoutDays.id, id)
-    });
+  async getWorkoutDay(userId: number, id: number): Promise<WorkoutDay | undefined> {
+    const [workoutDay] = await db.select().from(workoutDays)
+      .where(and(eq(workoutDays.id, id), eq(workoutDays.userId, userId)));
+    return workoutDay;
   }
 
-  async createWorkoutDay(workoutDay: InsertWorkoutDay): Promise<WorkoutDay> {
-    // Get the current maximum display order
-    const maxOrder = await db.query.workoutDays.findFirst({
-      orderBy: (workoutDays, { desc }) => [desc(workoutDays.displayOrder)]
-    });
+  async createWorkoutDay(userId: number, workoutDay: Omit<InsertWorkoutDay, "userId">): Promise<WorkoutDay> {
+    const [maxOrder] = await db.select({ displayOrder: workoutDays.displayOrder })
+      .from(workoutDays)
+      .where(eq(workoutDays.userId, userId))
+      .orderBy(workoutDays.displayOrder)
+      .limit(1);
 
     const nextOrder = (maxOrder?.displayOrder ?? -1) + 1;
 
-    const [created] = await db.insert(workoutDays).values({
-      ...workoutDay,
-      exercises: workoutDay.exercises as string[],
-      displayOrder: nextOrder,
-    }).returning();
+    const [created] = await db.insert(workoutDays)
+      .values({
+        ...workoutDay,
+        userId,
+        exercises: workoutDay.exercises as string[],
+        displayOrder: nextOrder,
+      })
+      .returning();
 
     return created;
   }
 
-  async updateWorkoutDay(id: number, workoutDay: Partial<InsertWorkoutDay>): Promise<WorkoutDay> {
-    const [updated] = await db
-      .update(workoutDays)
+  async updateWorkoutDay(userId: number, id: number, workoutDay: Partial<InsertWorkoutDay>): Promise<WorkoutDay> {
+    const [updated] = await db.update(workoutDays)
       .set({
         ...workoutDay,
         exercises: workoutDay.exercises as string[] | undefined,
       })
-      .where(eq(workoutDays.id, id))
+      .where(and(eq(workoutDays.id, id), eq(workoutDays.userId, userId)))
       .returning();
     if (!updated) throw new Error("Workout day not found");
     return updated;
   }
 
-  async deleteWorkoutDay(id: number): Promise<void> {
-    await db.delete(workoutDays).where(eq(workoutDays.id, id));
+  async deleteWorkoutDay(userId: number, id: number): Promise<void> {
+    await db.delete(workoutDays)
+      .where(and(eq(workoutDays.id, id), eq(workoutDays.userId, userId)));
   }
 
-  async reorderWorkoutDays(updates: { id: number; displayOrder: number }[]): Promise<void> {
+  async reorderWorkoutDays(userId: number, updates: { id: number; displayOrder: number }[]): Promise<void> {
     try {
       await db.transaction(async (tx) => {
         for (const update of updates) {
-          await tx
-            .update(workoutDays)
+          await tx.update(workoutDays)
             .set({ displayOrder: update.displayOrder })
-            .where(eq(workoutDays.id, update.id));
+            .where(and(eq(workoutDays.id, update.id), eq(workoutDays.userId, userId)));
         }
       });
     } catch (error) {
@@ -136,24 +166,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Workout log operations
-  async getAllWorkoutLogs(): Promise<WorkoutLog[]> {
-    return await db.query.workoutLogs.findMany();
+  async getAllWorkoutLogs(userId: number): Promise<WorkoutLog[]> {
+    return await db.select().from(workoutLogs)
+      .where(eq(workoutLogs.userId, userId));
   }
 
-  async getWorkoutLogsByExercise(exerciseName: string): Promise<WorkoutLog[]> {
-    return await db.query.workoutLogs.findMany({
-      where: eq(workoutLogs.exercise, exerciseName)
-    });
+  async getWorkoutLogsByExercise(userId: number, exerciseName: string): Promise<WorkoutLog[]> {
+    return await db.select().from(workoutLogs)
+      .where(and(eq(workoutLogs.exercise, exerciseName), eq(workoutLogs.userId, userId)));
   }
 
-  async createWorkoutLog(workoutLog: InsertWorkoutLog): Promise<WorkoutLog> {
-    logger.info('Creating workout log with data:', workoutLog);
+  async createWorkoutLog(userId: number, workoutLog: Omit<InsertWorkoutLog, "userId">): Promise<WorkoutLog> {
+    logger.info('Creating workout log with data:', { ...workoutLog, userId });
 
     try {
-      // Insert the workout log directly without string conversion
       const [created] = await db.insert(workoutLogs)
         .values({
           ...workoutLog,
+          userId,
           date: workoutLog.date || new Date()
         })
         .returning();
@@ -166,17 +196,21 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async deleteWorkoutLog(id: number): Promise<void> { 
-    await db.delete(workoutLogs).where(eq(workoutLogs.id, id));
+  async deleteWorkoutLog(userId: number, id: number): Promise<void> {
+    await db.delete(workoutLogs)
+      .where(and(eq(workoutLogs.id, id), eq(workoutLogs.userId, userId)));
   }
 
   // Weight log operations
-  async getAllWeightLogs(): Promise<WeightLog[]> {
-    return await db.query.weightLog.findMany();
+  async getAllWeightLogs(userId: number): Promise<WeightLog[]> {
+    return await db.select().from(weightLog)
+      .where(eq(weightLog.userId, userId));
   }
 
-  async createWeightLog(weightLogData: InsertWeightLog): Promise<WeightLog> {
-    const [created] = await db.insert(weightLog).values(weightLogData).returning();
+  async createWeightLog(userId: number, weightLogData: Omit<InsertWeightLog, "userId">): Promise<WeightLog> {
+    const [created] = await db.insert(weightLog)
+      .values({ ...weightLogData, userId })
+      .returning();
     return created;
   }
 }
