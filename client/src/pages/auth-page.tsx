@@ -36,12 +36,20 @@ export default function AuthPage() {
   }
 
   const loginForm = useForm({
+    defaultValues: {
+      username: "",
+      password: "",
+    },
     resolver: zodResolver(
       userSchema.pick({ username: true, password: true })
     ),
   });
 
   const registerForm = useForm({
+    defaultValues: {
+      username: "",
+      password: "",
+    },
     resolver: zodResolver(userSchema),
   });
 
