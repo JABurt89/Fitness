@@ -1,9 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { exerciseSchema, workoutDaySchema, workoutLogSchema, weightLogSchema } from "@shared/schema";
+import { exerciseSchema, workoutDaySchema, weightLogSchema } from "@shared/schema";
 import { z } from "zod";
-import { logger } from "./logger";  // Fix the import by using the correct path
+import { logger } from "./logger";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add route path logging middleware
@@ -41,6 +41,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }))
     });
 
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
     const result = reorderSchema.safeParse(req.body);
     if (!result.success) {
       logger.error('Reorder validation error:', result.error);
@@ -49,8 +53,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
-      await storage.reorderWorkoutDays(result.data.workouts);
-      const updatedWorkouts = await storage.getAllWorkoutDays();
+      await storage.reorderWorkoutDays(req.user.id, result.data.workouts);
+      const updatedWorkouts = await storage.getAllWorkoutDays(req.user.id);
 
       logger.info('Reorder successful:', {
         updates: result.data.workouts,
@@ -83,23 +87,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Exercise routes
   app.get("/api/exercises", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
     logger.info(`GET /api/exercises`);
-    const exercises = await storage.getAllExercises();
+    const exercises = await storage.getAllExercises(req.user.id);
     res.json(exercises);
   });
 
   app.post("/api/exercises", async (req, res) => {
-    logger.info(`POST /api/exercises`, {payload: req.body});
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    logger.info(`POST /api/exercises`, { payload: req.body });
     const result = exerciseSchema.safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: result.error });
       return;
     }
-    const exercise = await storage.createExercise(result.data);
+    const exercise = await storage.createExercise(req.user.id, result.data);
     res.json(exercise);
   });
 
   app.patch("/api/exercises/:id", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     const id = parseInt(req.params.id);
     logger.info(`PATCH /api/exercises/${id}`, {payload: req.body});
     const result = exerciseSchema.partial().safeParse(req.body);
@@ -108,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
     try {
-      const exercise = await storage.updateExercise(id, result.data);
+      const exercise = await storage.updateExercise(req.user.id, id, result.data);
       res.json(exercise);
     } catch (error) {
       res.status(404).json({ error: "Exercise not found" });
@@ -116,31 +131,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.delete("/api/exercises/:id", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     const id = parseInt(req.params.id);
     logger.info(`DELETE /api/exercises/${id}`);
-    await storage.deleteExercise(id);
+    await storage.deleteExercise(req.user.id, id);
     res.status(204).send();
   });
 
   // Workout day routes
   app.get("/api/workout-days", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     logger.info(`GET /api/workout-days`);
-    const workoutDays = await storage.getAllWorkoutDays();
+    const workoutDays = await storage.getAllWorkoutDays(req.user.id);
     res.json(workoutDays);
   });
 
   app.post("/api/workout-days", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     logger.info(`POST /api/workout-days`, {payload: req.body});
     const result = workoutDaySchema.safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: result.error });
       return;
     }
-    const workoutDay = await storage.createWorkoutDay(result.data);
+    const workoutDay = await storage.createWorkoutDay(req.user.id, result.data);
     res.json(workoutDay);
   });
 
   app.patch("/api/workout-days/:id", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     const id = parseInt(req.params.id);
     logger.info(`PATCH /api/workout-days/${id}`, {payload: req.body});
     const result = workoutDaySchema.partial().safeParse(req.body);
@@ -149,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return;
     }
     try {
-      const workoutDay = await storage.updateWorkoutDay(id, result.data);
+      const workoutDay = await storage.updateWorkoutDay(req.user.id, id, result.data);
       res.json(workoutDay);
     } catch (error) {
       res.status(404).json({ error: "Workout day not found" });
@@ -157,26 +184,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.delete("/api/workout-days/:id", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     const id = parseInt(req.params.id);
     logger.info(`DELETE /api/workout-days/${id}`);
-    await storage.deleteWorkoutDay(id);
+    await storage.deleteWorkoutDay(req.user.id, id);
     res.status(204).send();
   });
 
   // Workout log routes
   app.get("/api/workout-logs", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     logger.info(`GET /api/workout-logs`, {query: req.query});
     const { exercise } = req.query;
     if (exercise && typeof exercise === 'string') {
-      const logs = await storage.getWorkoutLogsByExercise(exercise);
+      const logs = await storage.getWorkoutLogsByExercise(req.user.id, exercise);
       res.json(logs);
     } else {
-      const logs = await storage.getAllWorkoutLogs();
+      const logs = await storage.getAllWorkoutLogs(req.user.id);
       res.json(logs);
     }
   });
 
   app.post("/api/workout-logs", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     logger.info(`POST /api/workout-logs - Request:`, {
       body: req.body,
     });
@@ -196,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       logger.info('Processed workout log data:', data);
 
       // Create the workout log
-      const log = await storage.createWorkoutLog(data);
+      const log = await storage.createWorkoutLog(req.user.id, data);
 
       logger.info('Successfully created workout log:', log);
       res.json(log);
@@ -215,10 +251,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add delete workout log route
   app.delete("/api/workout-logs/:id", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     const id = parseInt(req.params.id);
     logger.info(`DELETE /api/workout-logs/${id}`);
     try {
-      await storage.deleteWorkoutLog(id);
+      await storage.deleteWorkoutLog(req.user.id, id);
       res.status(204).send();
     } catch (error) {
       logger.error('Error deleting workout log:', error);
@@ -228,19 +267,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Weight log routes
   app.get("/api/weight-logs", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     logger.info(`GET /api/weight-logs`);
-    const logs = await storage.getAllWeightLogs();
+    const logs = await storage.getAllWeightLogs(req.user.id);
     res.json(logs);
   });
 
   app.post("/api/weight-logs", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
     logger.info(`POST /api/weight-logs`, {payload: req.body});
     const result = weightLogSchema.safeParse(req.body);
     if (!result.success) {
       res.status(400).json({ error: result.error });
       return;
     }
-    const log = await storage.createWeightLog(result.data);
+    const log = await storage.createWeightLog(req.user.id, result.data);
     res.json(log);
   });
 
