@@ -37,7 +37,7 @@ export default function Sidebar() {
         <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border bg-sidebar px-4 py-2">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="h-10 w-10" />
-            <span className="font-medium text-sidebar-foreground">Workout Tracker</span>
+            <span className="font-medium text-sidebar-foreground">Retard Strength</span>
           </div>
         </div>
       )}
@@ -50,7 +50,7 @@ export default function Sidebar() {
           >
             <div className="flex h-full w-full flex-col bg-sidebar">
               <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border bg-sidebar">
-                <h1 className="text-xl font-bold text-sidebar-foreground truncate">Workout Tracker</h1>
+                <h1 className="text-xl font-bold text-sidebar-foreground truncate">Retard Strength</h1>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -101,8 +101,8 @@ export default function Sidebar() {
           )}
         >
           <SidebarHeader className="flex items-center h-16 px-4 border-b border-sidebar-border bg-sidebar">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-sidebar-foreground truncate">Workout Tracker</h1>
+            <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
+              <h1 className="text-xl font-bold text-sidebar-foreground truncate">Retard Strength</h1>
             </div>
             <SidebarTrigger className="ml-2 shrink-0" />
           </SidebarHeader>
