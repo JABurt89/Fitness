@@ -46,7 +46,7 @@ export default function Sidebar() {
         <Sheet open={openMobile} onOpenChange={setOpenMobile}>
           <SheetContent
             side="left"
-            className="w-[280px] p-0 bg-sidebar border-r border-sidebar-border"
+            className="w-[280px] p-0 bg-sidebar border-r border-sidebar-border [&>button]:hidden"
           >
             <div className="flex h-full w-full flex-col bg-sidebar">
               <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border bg-sidebar">
@@ -65,7 +65,7 @@ export default function Sidebar() {
                 <SidebarMenu>
                   {navigation.map((item) => (
                     <SidebarMenuItem key={item.name}>
-                      <Link href={item.href}>
+                      <Link href={item.href} onClick={() => setOpenMobile(false)}>
                         <SidebarMenuButton
                           isActive={location === item.href}
                           tooltip={item.name}
