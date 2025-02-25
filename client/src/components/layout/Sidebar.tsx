@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
-import { Dumbbell, Calendar, ClipboardList, Scale, LayoutDashboard, Calculator, Play } from "lucide-react";
+import { Dumbbell, Calendar, ClipboardList, Scale, LayoutDashboard, Calculator, Play, X } from "lucide-react";
 import { 
   Sidebar as UISidebar, 
   SidebarTrigger, 
@@ -11,6 +11,8 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -33,56 +35,100 @@ export default function Sidebar() {
         <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between border-b border-border bg-background px-4 py-2">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="h-10 w-10" />
-            <span className="font-medium">Menu</span>
+            <span className="font-medium">Workout Tracker</span>
           </div>
         </div>
       )}
 
-      <UISidebar 
-        variant="floating"
-        collapsible={isMobile ? "offcanvas" : "icon"}
-        className={cn(
-          "border-r border-border bg-background",
-          "fixed left-0 top-0 bottom-0 md:sticky md:top-0",
-          "z-40 flex h-screen",
-          isMobile ? "w-[280px]" : "w-[240px]",
-          "transition-all duration-300 ease-in-out"
-        )}
-      >
-        <SidebarHeader className={cn(
-          "flex items-center h-16 px-4 border-b border-border bg-background",
-          isMobile && "mt-14" // Add margin-top when mobile to account for top nav
-        )}>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
-          </div>
-          {!isMobile && <SidebarTrigger className="ml-2 shrink-0" />}
-        </SidebarHeader>
-        <SidebarContent className="flex-1 overflow-y-auto bg-background">
-          <SidebarMenu>
-            {navigation.map((item) => (
-              <SidebarMenuItem key={item.name}>
-                <Link href={item.href}>
-                  <SidebarMenuButton
-                    isActive={location === item.href}
-                    tooltip={item.name}
-                    className={cn(
-                      "w-full",
-                      location === item.href
-                        ? "bg-accent text-accent-foreground"
-                        : "text-foreground/80 hover:bg-accent/50 hover:text-accent-foreground",
-                      "group-data-[collapsible=icon]:!p-2"
-                    )}
-                  >
-                    <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                    <span className="truncate group-data-[collapsible=icon]:hidden">{item.name}</span>
-                  </SidebarMenuButton>
-                </Link>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarContent>
-      </UISidebar>
+      {isMobile ? (
+        <Sheet>
+          <SheetContent
+            side="left"
+            className="w-[280px] p-0 bg-background"
+          >
+            <div className="flex h-full w-full flex-col">
+              <div className="flex items-center justify-between h-16 px-4 border-b border-border bg-background">
+                <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10"
+                >
+                  <X className="h-5 w-5" />
+                  <span className="sr-only">Close Menu</span>
+                </Button>
+              </div>
+              <SidebarContent className="flex-1 overflow-y-auto bg-background p-4">
+                <SidebarMenu>
+                  {navigation.map((item) => (
+                    <SidebarMenuItem key={item.name}>
+                      <Link href={item.href}>
+                        <SidebarMenuButton
+                          isActive={location === item.href}
+                          tooltip={item.name}
+                          className={cn(
+                            "w-full",
+                            location === item.href
+                              ? "bg-accent text-accent-foreground"
+                              : "text-foreground/80 hover:bg-accent/50 hover:text-accent-foreground",
+                            "group-data-[collapsible=icon]:!p-2"
+                          )}
+                        >
+                          <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
+                          <span className="truncate text-sm">{item.name}</span>
+                        </SidebarMenuButton>
+                      </Link>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarContent>
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <UISidebar 
+          variant="floating"
+          collapsible="icon"
+          className={cn(
+            "border-r border-border bg-background",
+            "fixed left-0 top-0 bottom-0 md:sticky md:top-0",
+            "z-40 flex h-screen",
+            "w-[240px]",
+            "transition-all duration-300 ease-in-out"
+          )}
+        >
+          <SidebarHeader className="flex items-center h-16 px-4 border-b border-border bg-background">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold text-foreground truncate">Workout Tracker</h1>
+            </div>
+            <SidebarTrigger className="ml-2 shrink-0" />
+          </SidebarHeader>
+          <SidebarContent className="flex-1 overflow-y-auto bg-background p-4">
+            <SidebarMenu>
+              {navigation.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <Link href={item.href}>
+                    <SidebarMenuButton
+                      isActive={location === item.href}
+                      tooltip={item.name}
+                      className={cn(
+                        "w-full",
+                        location === item.href
+                          ? "bg-accent text-accent-foreground"
+                          : "text-foreground/80 hover:bg-accent/50 hover:text-accent-foreground",
+                        "group-data-[collapsible=icon]:!p-2"
+                      )}
+                    >
+                      <item.icon className="w-5 h-5 shrink-0" aria-hidden="true" />
+                      <span className="truncate text-sm group-data-[collapsible=icon]:hidden">{item.name}</span>
+                    </SidebarMenuButton>
+                  </Link>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarContent>
+        </UISidebar>
+      )}
     </>
   );
 }
