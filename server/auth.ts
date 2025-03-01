@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import connectPg from "connect-pg-simple";
+import { logger } from "./logger";
 
 declare global {
   namespace Express {
@@ -68,12 +69,22 @@ export function setupAuth(app: Express) {
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    logger.info('Serializing user:', { userId: user.id });
+    done(null, user.id);
+  });
+
   passport.deserializeUser(async (id: number, done) => {
     try {
+      logger.info('Deserializing user:', { userId: id });
       const user = await storage.getUser(id);
+      if (!user) {
+        logger.error('User not found during deserialization:', { userId: id });
+        return done(null, false);
+      }
       done(null, user);
     } catch (err) {
+      logger.error('Error deserializing user:', { userId: id, error: err });
       done(err);
     }
   });
