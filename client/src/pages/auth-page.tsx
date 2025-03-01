@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,12 +47,11 @@ export default function AuthPage() {
     resolver: zodResolver(userSchema),
   });
 
-  // Redirect if already logged in
-  if (user) {
-    // Use setTimeout to avoid React state updates during render
-    setTimeout(() => setLocation("/"), 0);
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   return (
     <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-2 lg:px-0">
