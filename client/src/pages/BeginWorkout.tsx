@@ -382,11 +382,9 @@ export default function BeginWorkout() {
       <Dialog open={showPreviousWorkoutDialog} onOpenChange={setShowPreviousWorkoutDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Enter Your Last {pendingWorkout?.exercise?.name} Workout
-            </DialogTitle>
+            <DialogTitle>Enter Previous Workout Details</DialogTitle>
             <DialogDescription>
-              Please enter the details of your previous workout to help generate suggestions.
+              Please enter the details of your last {pendingWorkout?.exercise?.name} workout to help generate appropriate suggestions.
             </DialogDescription>
           </DialogHeader>
           <Form {...previousWorkoutForm}>
@@ -439,9 +437,9 @@ export default function BeginWorkout() {
       <Dialog open={showSuggestions} onOpenChange={setShowSuggestions}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Workout Suggestions</DialogTitle>
+            <DialogTitle>Choose Your Workout</DialogTitle>
             <DialogDescription>
-              Select a workout suggestion below to begin your exercise.
+              Select from the following workout suggestions based on your previous performance.
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg border">
