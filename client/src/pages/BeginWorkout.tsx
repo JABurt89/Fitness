@@ -9,7 +9,7 @@ import type { WorkoutDay, Exercise, WorkoutLog } from "@shared/schema";
 import ExerciseLogger from "@/components/workout/ExerciseLogger";
 import { generateWorkoutSuggestions, calculateOneRMTrend } from "@/lib/workoutCalculator";
 import type { WorkoutSuggestion } from "@/lib/workoutCalculator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
@@ -37,9 +37,9 @@ export default function BeginWorkout() {
   const previousWorkoutForm = useForm<PreviousWorkoutData>({
     resolver: zodResolver(previousWorkoutSchema),
     defaultValues: {
-      weight: "",
-      reps: "",
-      sets: "",
+      weight: "0",
+      reps: "0",
+      sets: "0",
     }
   });
 
@@ -385,6 +385,9 @@ export default function BeginWorkout() {
             <DialogTitle>
               Enter Your Last {pendingWorkout?.exercise?.name} Workout
             </DialogTitle>
+            <DialogDescription>
+              Please enter the details of your previous workout to help generate suggestions.
+            </DialogDescription>
           </DialogHeader>
           <Form {...previousWorkoutForm}>
             <form onSubmit={previousWorkoutForm.handleSubmit(handlePreviousWorkoutSubmit)} className="space-y-4">
@@ -437,6 +440,9 @@ export default function BeginWorkout() {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Workout Suggestions</DialogTitle>
+            <DialogDescription>
+              Select a workout suggestion below to begin your exercise.
+            </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg border">
             <table className="w-full">
