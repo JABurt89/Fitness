@@ -14,6 +14,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
+import { UserSection } from "./UserSection"; // Import UserSection
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -85,6 +86,7 @@ export default function Sidebar() {
                   ))}
                 </SidebarMenu>
               </SidebarContent>
+              <UserSection />
             </div>
           </SheetContent>
         </Sheet>
@@ -130,6 +132,7 @@ export default function Sidebar() {
               ))}
             </SidebarMenu>
           </SidebarContent>
+          <UserSection />
         </UISidebar>
       )}
     </>
