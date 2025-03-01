@@ -38,6 +38,7 @@ export function setupAuth(app: Express) {
         connectionString: process.env.DATABASE_URL,
       },
       createTableIfMissing: true,
+      tableName: 'session'
     }),
     secret: process.env.SESSION_SECRET ?? randomBytes(32).toString('hex'),
     resave: false,
