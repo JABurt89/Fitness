@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import connectPg from "connect-pg-simple";
 
 declare global {
   namespace Express {
@@ -29,8 +30,16 @@ async function comparePasswords(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
+  const PostgresSessionStore = connectPg(session);
+
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET ?? "your-secret-key",
+    store: new PostgresSessionStore({
+      conObject: {
+        connectionString: process.env.DATABASE_URL,
+      },
+      createTableIfMissing: true,
+    }),
+    secret: process.env.SESSION_SECRET ?? randomBytes(32).toString('hex'),
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -82,9 +91,10 @@ export function setupAuth(app: Express) {
 
       req.login(user, (err) => {
         if (err) {
+          console.error("Login after registration failed:", err);
           return res.status(500).json({ message: "Login after registration failed" });
         }
-        res.status(201).json(user);
+        res.json(user);
       });
     } catch (err) {
       console.error("Registration error:", err);
@@ -96,7 +106,7 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
-  app.post("/api/logout", (req, res, next) => {
+  app.post("/api/logout", (req, res) => {
     req.logout((err) => {
       if (err) {
         return res.status(500).json({ message: "Logout failed" });
