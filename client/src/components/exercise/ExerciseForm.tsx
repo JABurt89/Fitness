@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { exerciseSchema, type Exercise, type InsertExercise } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ExerciseFormProps {
   exercise?: Exercise | null;
@@ -34,6 +34,7 @@ type StartingWeightType = keyof typeof STARTING_WEIGHTS;
 export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
 
   console.log('ExerciseForm mounting with props:', { exercise, hasOnSuccess: !!onSuccess });
 
@@ -62,11 +63,22 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
 
   const mutation = useMutation({
     mutationFn: async (data: InsertExercise) => {
-      console.log('Exercise mutation starting with data:', data);
+      console.log('Starting exercise mutation with data:', data);
       setIsSubmitting(true);
       try {
-        const response = await apiRequest('POST', '/api/exercises', data);
-        console.log('Exercise mutation response:', response);
+        // Ensure all numeric fields are properly formatted
+        const formattedData = {
+          ...data,
+          setsRange: data.setsRange.map(Number),
+          repsRange: data.repsRange.map(Number),
+          weightIncrement: Number(data.weightIncrement),
+          restTimer: Number(data.restTimer),
+          customStartingWeight: data.customStartingWeight ? Number(data.customStartingWeight) : undefined
+        };
+
+        console.log('Sending formatted data to server:', formattedData);
+        const response = await apiRequest('POST', '/api/exercises', formattedData);
+        console.log('Server response:', response);
         return response;
       } catch (error) {
         console.error('Exercise mutation failed:', error);
@@ -76,15 +88,15 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       }
     },
     onSuccess: (data) => {
-      console.log('Exercise mutation succeeded:', data);
+      console.log('Exercise created successfully:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/exercises'] });
-      toast({ title: `Exercise ${exercise ? 'updated' : 'created'} successfully` });
+      toast({ title: "Exercise created successfully" });
       onSuccess?.();
     },
     onError: (error) => {
       console.error('Exercise mutation error:', error);
       toast({
-        title: `Failed to ${exercise ? 'update' : 'create'} exercise`,
+        title: "Failed to create exercise",
         description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive"
       });
@@ -92,7 +104,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
   });
 
   const onSubmit = async (data: InsertExercise) => {
-    console.log('Form submission starting with values:', {
+    console.log('Form submission starting:', {
       formData: data,
       formState: form.formState
     });
@@ -106,11 +118,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       await mutation.mutateAsync(data);
     } catch (error) {
       console.error('Form submission error:', error);
-      toast({
-        title: "Failed to submit form",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive",
-      });
     }
   };
 
