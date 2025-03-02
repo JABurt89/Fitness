@@ -84,9 +84,8 @@ export class DatabaseStorage implements IStorage {
       const dbData = {
         ...exercise,
         userId,
-        // Convert numeric values to strings for database storage
         weightIncrement: exercise.weightIncrement.toString(),
-        customStartingWeight: exercise.customStartingWeight?.toString() ?? null,
+        customStartingWeight: exercise.customStartingWeight?.toString() ?? null
       };
 
       const [created] = await db.insert(exercises)

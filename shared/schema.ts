@@ -55,8 +55,8 @@ export const exercises = pgTable("exercises", {
   customStartingWeight: numeric("custom_starting_weight"),
 });
 
-// Exercise validation schema
-export const exerciseSchema = createInsertSchema(exercises).extend({
+// Base exercise schema
+const baseExerciseSchema = z.object({
   name: z.string().min(1, "Exercise name is required"),
   bodyPart: z.string().min(1, "Body part is required"),
   setsRange: z.tuple([
@@ -67,11 +67,25 @@ export const exerciseSchema = createInsertSchema(exercises).extend({
     z.number().int().min(1, "Minimum reps must be at least 1"),
     z.number().int().min(1, "Maximum reps must be at least 1")
   ]).refine(([min, max]) => min <= max, "Minimum reps must be less than or equal to maximum reps"),
-  weightIncrement: z.number().positive("Weight increment must be positive"),
-  restTimer: z.number().int().min(0, "Rest timer must be non-negative").default(60),
+  weightIncrement: z.number().min(0.5, "Weight increment must be at least 0.5"),
+  restTimer: z.number().int().min(0, "Rest timer must be non-negative"),
   startingWeightType: z.enum(["Barbell", "EZ Bar", "Dumbbell", "Smith Machine", "Custom"]),
   customStartingWeight: z.number().positive("Custom starting weight must be positive").optional(),
 });
+
+// Exercise validation schema with custom validation
+export const exerciseSchema = baseExerciseSchema.refine(
+  (data) => {
+    if (data.startingWeightType === "Custom") {
+      return data.customStartingWeight != null;
+    }
+    return true;
+  },
+  {
+    message: "Custom starting weight is required when using Custom type",
+    path: ["customStartingWeight"],
+  }
+);
 
 // Export types
 export type Exercise = typeof exercises.$inferSelect;
