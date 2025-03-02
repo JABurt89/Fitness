@@ -119,8 +119,25 @@ const progressionSettingsSchema = z.object({
   }
 );
 
-// Other schemas remain unchanged but will include userId in their types
-export const exerciseSchema = createInsertSchema(exercises);
+// Modify the exercise schema to be more specific and add better validation
+export const exerciseSchema = createInsertSchema(exercises).extend({
+  name: z.string().min(1, "Exercise name is required"),
+  bodyPart: z.string().min(1, "Body part is required"),
+  setsRange: z.tuple([
+    z.number().int().positive("Minimum sets must be positive"),
+    z.number().int().positive("Maximum sets must be positive")
+  ]).refine(([min, max]) => min <= max, "Minimum sets must be less than or equal to maximum sets"),
+  repsRange: z.tuple([
+    z.number().int().positive("Minimum reps must be positive"),
+    z.number().int().positive("Maximum reps must be positive")
+  ]).refine(([min, max]) => min <= max, "Minimum reps must be less than or equal to maximum reps"),
+  weightIncrement: z.union([
+    z.string().regex(/^\d*\.?\d+$/, "Weight increment must be a valid number"),
+    z.number().positive("Weight increment must be positive")
+  ]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
+  restTimer: z.number().int().min(0, "Rest timer must be non-negative").default(60),
+});
+
 export const workoutDaySchema = createInsertSchema(workoutDays).extend({
   lastCompleted: z.string().datetime().nullable().optional()
     .transform(val => val ? new Date(val) : null),

@@ -5,13 +5,6 @@ import { queryClient } from "@/lib/queryClient";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { exerciseSchema, type Exercise, type InsertExercise } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -20,16 +13,6 @@ interface ExerciseFormProps {
   exercise?: Exercise | null;
   onSuccess?: () => void;
 }
-
-const STARTING_WEIGHTS = {
-  "Barbell": 20,
-  "EZ Bar": 12,
-  "Dumbbell": 2.5,
-  "Smith Machine": 15,
-  "Custom": 0
-} as const;
-
-type StartingWeightType = keyof typeof STARTING_WEIGHTS;
 
 export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps) {
   const { toast } = useToast();
@@ -45,8 +28,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       repsRange: exercise.repsRange,
       weightIncrement: exercise.weightIncrement,
       restTimer: exercise.restTimer,
-      startingWeightType: exercise.startingWeightType,
-      customStartingWeight: exercise.customStartingWeight?.toString()
     } : {
       name: "",
       bodyPart: "",
@@ -54,8 +35,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       repsRange: [8, 12],
       weightIncrement: "2.5",
       restTimer: 60,
-      startingWeightType: "Barbell",
-      customStartingWeight: ""
     },
   });
 
@@ -100,8 +79,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
 
     mutation.mutate(data);
   };
-
-  const startingWeightType = form.watch("startingWeightType") as StartingWeightType;
 
   return (
     <Form {...form}>
@@ -226,49 +203,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
           )}
         />
 
-        {startingWeightType === "Custom" && (
-          <FormField
-            control={form.control}
-            name="customStartingWeight"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Custom Starting Weight (kg)</FormLabel>
-                <FormControl>
-                  <Input
-                    type="number"
-                    step="0.5"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-        <FormField
-          control={form.control}
-          name="startingWeightType"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Starting Weight Type</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select starting weight type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {Object.keys(STARTING_WEIGHTS).map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type} {type !== "Custom" && `(${STARTING_WEIGHTS[type as StartingWeightType]}kg)`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
         <Button
           type="submit"
           className="w-full"
