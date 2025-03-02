@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -33,6 +34,7 @@ type StartingWeightType = keyof typeof STARTING_WEIGHTS;
 
 export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps) {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   console.log('ExerciseForm mounting with props:', { exercise, hasOnSuccess: !!onSuccess });
 
@@ -62,6 +64,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
   const mutation = useMutation({
     mutationFn: async (data: InsertExercise) => {
       console.log('Exercise mutation starting with data:', data);
+      setIsSubmitting(true);
       try {
         const response = await apiRequest('POST', '/api/exercises', data);
         console.log('Exercise mutation response:', response);
@@ -69,6 +72,8 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       } catch (error) {
         console.error('Exercise mutation failed:', error);
         throw error;
+      } finally {
+        setIsSubmitting(false);
       }
     },
     onSuccess: (data) => {
@@ -146,14 +151,14 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
                     <Input
                       type="number"
                       value={field.value[0]}
-                      onChange={e => field.onChange([parseInt(e.target.value), field.value[1]])}
+                      onChange={e => field.onChange([Number(e.target.value), field.value[1]])}
                     />
                   </FormControl>
                   <FormControl>
                     <Input
                       type="number"
                       value={field.value[1]}
-                      onChange={e => field.onChange([field.value[0], parseInt(e.target.value)])}
+                      onChange={e => field.onChange([field.value[0], Number(e.target.value)])}
                     />
                   </FormControl>
                 </div>
@@ -173,14 +178,14 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
                     <Input
                       type="number"
                       value={field.value[0]}
-                      onChange={e => field.onChange([parseInt(e.target.value), field.value[1]])}
+                      onChange={e => field.onChange([Number(e.target.value), field.value[1]])}
                     />
                   </FormControl>
                   <FormControl>
                     <Input
                       type="number"
                       value={field.value[1]}
-                      onChange={e => field.onChange([field.value[0], parseInt(e.target.value)])}
+                      onChange={e => field.onChange([field.value[0], Number(e.target.value)])}
                     />
                   </FormControl>
                 </div>
@@ -220,7 +225,8 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
                 <Input
                   type="number"
                   {...field}
-                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                  value={field.value}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </FormControl>
               <FormMessage />
@@ -278,7 +284,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
         <Button
           type="submit"
           className="w-full"
-          disabled={mutation.isPending}
+          disabled={isSubmitting || mutation.isPending}
         >
           {exercise ? 'Update' : 'Create'} Exercise
         </Button>
