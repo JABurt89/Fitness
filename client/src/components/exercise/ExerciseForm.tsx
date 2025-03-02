@@ -5,7 +5,7 @@ import { queryClient } from "@/lib/queryClient";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,6 +33,9 @@ type StartingWeightType = keyof typeof STARTING_WEIGHTS;
 
 export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps) {
   const { toast } = useToast();
+
+  console.log('ExerciseForm mounting with props:', { exercise, hasOnSuccess: !!onSuccess });
+
   const form = useForm<InsertExercise>({
     resolver: zodResolver(exerciseSchema),
     defaultValues: exercise ? {
@@ -58,14 +61,18 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
 
   const mutation = useMutation({
     mutationFn: async (data: InsertExercise) => {
-      console.log('Submitting exercise data:', data);
-      if (exercise) {
-        return await apiRequest('PATCH', `/api/exercises/${exercise.id}`, data);
-      } else {
-        return await apiRequest('POST', '/api/exercises', data);
+      console.log('Exercise mutation starting with data:', data);
+      try {
+        const response = await apiRequest('POST', '/api/exercises', data);
+        console.log('Exercise mutation response:', response);
+        return response;
+      } catch (error) {
+        console.error('Exercise mutation failed:', error);
+        throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Exercise mutation succeeded:', data);
       queryClient.invalidateQueries({ queryKey: ['/api/exercises'] });
       toast({ title: `Exercise ${exercise ? 'updated' : 'created'} successfully` });
       onSuccess?.();
@@ -81,7 +88,16 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
   });
 
   const onSubmit = (data: InsertExercise) => {
-    console.log('Form submission:', data);
+    console.log('Form submission starting with values:', {
+      formData: data,
+      formState: form.formState
+    });
+
+    if (Object.keys(form.formState.errors).length > 0) {
+      console.error('Form validation errors:', form.formState.errors);
+      return;
+    }
+
     mutation.mutate(data);
   };
 
@@ -253,8 +269,8 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
             </FormItem>
           )}
         />
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           className="w-full"
           disabled={mutation.isPending}
         >

@@ -97,18 +97,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/exercises", async (req, res) => {
+    logger.info('Exercise creation request received:', {
+      body: req.body,
+      user: req.user,
+      headers: req.headers
+    });
+
     if (!req.user) {
+      logger.warn('Unauthorized exercise creation attempt');
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    logger.info(`POST /api/exercises`, { payload: req.body });
-    const result = exerciseSchema.safeParse(req.body);
-    if (!result.success) {
-      res.status(400).json({ error: result.error });
-      return;
+    try {
+      logger.info('Validating exercise data:', req.body);
+      const result = exerciseSchema.safeParse(req.body);
+
+      if (!result.success) {
+        logger.error('Exercise validation failed:', {
+          errors: result.error.errors,
+          receivedData: req.body
+        });
+        res.status(400).json({ error: result.error });
+        return;
+      }
+
+      logger.info('Creating exercise:', {
+        userId: req.user.id,
+        exerciseData: result.data
+      });
+
+      const exercise = await storage.createExercise(req.user.id, result.data);
+
+      logger.info('Exercise created successfully:', exercise);
+      res.json(exercise);
+    } catch (error) {
+      logger.error('Error creating exercise:', {
+        error,
+        stack: error instanceof Error ? error.stack : undefined,
+        body: req.body
+      });
+
+      res.status(500).json({
+        error: "Failed to create exercise",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
-    const exercise = await storage.createExercise(req.user.id, result.data);
-    res.json(exercise);
   });
 
   app.patch("/api/exercises/:id", async (req, res) => {
