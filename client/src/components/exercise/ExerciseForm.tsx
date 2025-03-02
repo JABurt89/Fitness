@@ -56,47 +56,25 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       restTimer: 60,
       startingWeightType: "Barbell",
       customStartingWeight: undefined
-    },
-    mode: "onTouched"
-  });
-
-  console.log('Form state:', {
-    values: form.getValues(),
-    isDirty: form.formState.isDirty,
-    errors: form.formState.errors,
-    isSubmitting: form.formState.isSubmitting
+    }
   });
 
   const mutation = useMutation({
     mutationFn: async (data: InsertExercise) => {
       console.log('Starting exercise mutation with data:', data);
       setIsSubmitting(true);
-      try {
-        const formattedData = {
-          ...data,
-          setsRange: data.setsRange.map(Number),
-          repsRange: data.repsRange.map(Number),
-          weightIncrement: Number(data.weightIncrement),
-          restTimer: Number(data.restTimer),
-          customStartingWeight: data.customStartingWeight ? Number(data.customStartingWeight) : undefined
-        };
 
-        console.log('Sending formatted data to server:', formattedData);
-        const response = await apiRequest('POST', '/api/exercises', formattedData);
-        console.log('Server response:', response);
-        return response;
-      } catch (error) {
-        console.error('Exercise mutation failed:', error);
-        throw error;
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    onSuccess: (data) => {
-      console.log('Exercise created successfully:', data);
-      queryClient.invalidateQueries({ queryKey: ['/api/exercises'] });
-      toast({ title: "Exercise created successfully" });
-      onSuccess?.();
+      const formattedData = {
+        ...data,
+        setsRange: data.setsRange.map(Number),
+        repsRange: data.repsRange.map(Number),
+        weightIncrement: Number(data.weightIncrement),
+        restTimer: Number(data.restTimer),
+        customStartingWeight: data.customStartingWeight ? Number(data.customStartingWeight) : undefined
+      };
+
+      console.log('Sending formatted data to server:', formattedData);
+      return await apiRequest('POST', '/api/exercises', formattedData);
     },
     onError: (error) => {
       console.error('Exercise mutation error:', error);
@@ -105,13 +83,23 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
         description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive"
       });
+    },
+    onSuccess: (data) => {
+      console.log('Exercise created successfully:', data);
+      queryClient.invalidateQueries({ queryKey: ['/api/exercises'] });
+      toast({ title: "Exercise created successfully" });
+      onSuccess?.();
+      form.reset();
+    },
+    onSettled: () => {
+      setIsSubmitting(false);
     }
   });
 
-  const onSubmit = async (data: InsertExercise) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     console.log('Form submission starting:', {
       formData: data,
-      formState: form.formState
+      errors: form.formState.errors
     });
 
     try {
@@ -119,11 +107,11 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
     } catch (error) {
       console.error('Form submission error:', error);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -324,6 +312,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
             type="submit"
             className="w-full"
             disabled={isSubmitting || mutation.isPending}
+            onClick={() => console.log('Submit button clicked', form.formState)}
           >
             {isSubmitting ? "Creating..." : "Create Exercise"}
           </Button>
