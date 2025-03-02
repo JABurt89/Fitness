@@ -37,9 +37,9 @@ export default function BeginWorkout() {
   const previousWorkoutForm = useForm<PreviousWorkoutData>({
     resolver: zodResolver(previousWorkoutSchema),
     defaultValues: {
-      weight: "0",
-      reps: "0",
-      sets: "0",
+      weight: 0,
+      reps: 0,
+      sets: 0,
     }
   });
 
