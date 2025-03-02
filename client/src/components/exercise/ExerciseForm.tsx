@@ -36,8 +36,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
-  console.log('ExerciseForm mounting with props:', { exercise, hasOnSuccess: !!onSuccess });
-
   const form = useForm<InsertExercise>({
     resolver: zodResolver(exerciseSchema),
     defaultValues: exercise ? {
@@ -59,10 +57,11 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       startingWeightType: "Barbell",
       customStartingWeight: undefined
     },
-    mode: "onChange"
+    mode: "onTouched"
   });
 
   console.log('Form state:', {
+    values: form.getValues(),
     isDirty: form.formState.isDirty,
     errors: form.formState.errors,
     isSubmitting: form.formState.isSubmitting
@@ -73,7 +72,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       console.log('Starting exercise mutation with data:', data);
       setIsSubmitting(true);
       try {
-        // Ensure all numeric fields are properly formatted
         const formattedData = {
           ...data,
           setsRange: data.setsRange.map(Number),
@@ -133,7 +131,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
             <FormItem>
               <FormLabel>Exercise Name</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="e.g., Bench Press" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -147,7 +145,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
             <FormItem>
               <FormLabel>Body Part</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} placeholder="e.g., Chest" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -157,53 +155,75 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
         <div className="grid grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="setsRange"
+            name="setsRange.0"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Sets Range (min-max)</FormLabel>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Input
-                      type="number"
-                      value={field.value[0]}
-                      onChange={e => field.onChange([Number(e.target.value), field.value[1]])}
-                    />
-                  </FormControl>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      value={field.value[1]}
-                      onChange={e => field.onChange([field.value[0], Number(e.target.value)])}
-                    />
-                  </FormControl>
-                </div>
+                <FormLabel>Min Sets</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    min={1}
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-
           <FormField
             control={form.control}
-            name="repsRange"
+            name="setsRange.1"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Reps Range (min-max)</FormLabel>
-                <div className="flex gap-2">
-                  <FormControl>
-                    <Input
-                      type="number"
-                      value={field.value[0]}
-                      onChange={e => field.onChange([Number(e.target.value), field.value[1]])}
-                    />
-                  </FormControl>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      value={field.value[1]}
-                      onChange={e => field.onChange([field.value[0], Number(e.target.value)])}
-                    />
-                  </FormControl>
-                </div>
+                <FormLabel>Max Sets</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number"
+                    min={1}
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="repsRange.0"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Min Reps</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number"
+                    min={1}
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="repsRange.1"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Max Reps</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number"
+                    min={1}
+                    {...field}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -220,6 +240,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
                 <Input
                   type="number"
                   step="0.5"
+                  min="0.5"
                   {...field}
                   value={field.value}
                   onChange={(e) => field.onChange(Number(e.target.value))}
@@ -239,6 +260,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
               <FormControl>
                 <Input
                   type="number"
+                  min="0"
                   {...field}
                   value={field.value}
                   onChange={(e) => field.onChange(Number(e.target.value))}
@@ -285,6 +307,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
                   <Input
                     type="number"
                     step="0.5"
+                    min="0"
                     {...field}
                     value={field.value ?? ""}
                     onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
@@ -297,11 +320,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
         )}
 
         <div className="space-y-2">
-          {Object.keys(form.formState.errors).length > 0 && (
-            <div className="text-sm text-destructive">
-              Please fix the validation errors before submitting.
-            </div>
-          )}
           <Button
             type="submit"
             className="w-full"
