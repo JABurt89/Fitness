@@ -39,14 +39,21 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
 
   const createWorkoutDay = useMutation({
     mutationFn: async (data: InsertWorkoutDay) => {
+      console.log('Mutation starting with data:', data);
       const response = await apiRequest('POST', '/api/workout-days', data);
+      console.log('API Response:', response);
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to create workout day');
       }
-      return response.json();
+
+      const result = await response.json();
+      console.log('API Success result:', result);
+      return result;
     },
     onSuccess: () => {
+      console.log('Mutation success, invalidating queries');
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
       toast({ 
         title: "Success",
@@ -56,6 +63,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
       onSuccess?.();
     },
     onError: (error: Error) => {
+      console.error('Mutation error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create workout day",
@@ -63,6 +71,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
       });
     },
     onSettled: () => {
+      console.log('Mutation settled, resetting submit state');
       setIsSubmitting(false);
     }
   });
@@ -86,6 +95,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
   });
 
   const handleProgressionSchemeChange = (exerciseName: string, schemeType: keyof typeof ProgressionScheme) => {
+    console.log('Changing progression scheme:', { exerciseName, schemeType });
     const currentSchemes = form.getValues("progressionSchemes") || {};
     let newScheme: ProgressionSettings;
 
@@ -139,9 +149,11 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
         newScheme = getDefaultProgressionScheme();
         break;
       default:
+        console.error('Unknown progression scheme type:', schemeType);
         return;
     }
 
+    console.log('Setting new progression scheme:', { exerciseName, newScheme });
     form.setValue("progressionSchemes", {
       ...currentSchemes,
       [exerciseName]: newScheme
@@ -149,8 +161,11 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
   };
 
   const onSubmit = async (data: InsertWorkoutDay) => {
+    console.log('Form submission started with data:', data);
+
     try {
       if (!data.exercises || data.exercises.length === 0) {
+        console.error('No exercises selected');
         toast({
           title: "Error",
           description: "Please select at least one exercise",
@@ -165,6 +180,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
       );
 
       if (missingSchemes.length > 0) {
+        console.error('Missing progression schemes for exercises:', missingSchemes);
         toast({
           title: "Error",
           description: `Please select progression schemes for: ${missingSchemes.join(", ")}`,
@@ -173,6 +189,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
         return;
       }
 
+      console.log('Validation passed, submitting data:', data);
       setIsSubmitting(true);
       await createWorkoutDay.mutateAsync(data);
     } catch (error) {
@@ -215,6 +232,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
                       <Checkbox
                         checked={form.watch("exercises").includes(exercise.name)}
                         onCheckedChange={(checked) => {
+                          console.log('Exercise checkbox changed:', { exercise: exercise.name, checked });
                           const current = form.watch("exercises");
                           const updated = checked
                             ? [...current, exercise.name]
@@ -222,6 +240,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
 
                           // Initialize progression scheme when exercise is checked
                           if (checked) {
+                            console.log('Initializing progression scheme for:', exercise.name);
                             const currentSchemes = form.getValues("progressionSchemes");
                             form.setValue("progressionSchemes", {
                               ...currentSchemes,

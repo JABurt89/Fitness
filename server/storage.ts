@@ -130,6 +130,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWorkoutDay(userId: number, workoutDay: Omit<InsertWorkoutDay, "userId">): Promise<WorkoutDay> {
+    console.log('Storage: Creating workout day:', { userId, workoutDay });
+
     try {
       // Get the current maximum display order
       const [maxOrder] = await db.select({ displayOrder: workoutDays.displayOrder })
@@ -139,6 +141,7 @@ export class DatabaseStorage implements IStorage {
         .limit(1);
 
       const nextOrder = (maxOrder?.displayOrder ?? -1) + 1;
+      console.log('Calculated next display order:', nextOrder);
 
       const [created] = await db.insert(workoutDays)
         .values({
@@ -149,8 +152,10 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
+      console.log('Successfully created workout day:', created);
       return created;
     } catch (error) {
+      console.error('Error in createWorkoutDay:', error);
       throw error;
     }
   }

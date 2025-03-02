@@ -185,23 +185,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/workout-days", async (req, res) => {
+    console.log('POST /api/workout-days - Request body:', req.body);
+
     if (!req.user) {
+      console.log('Unauthorized attempt to create workout day');
       return res.status(401).json({ error: "Unauthorized" });
     }
 
     try {
+      console.log('Validating workout day data');
       const result = workoutDaySchema.safeParse(req.body);
 
       if (!result.success) {
+        console.error('Validation failed:', result.error.errors);
         return res.status(400).json({ 
           error: "Validation failed",
           details: result.error.errors 
         });
       }
 
+      console.log('Creating workout day:', {
+        userId: req.user.id,
+        data: result.data
+      });
+
       const workoutDay = await storage.createWorkoutDay(req.user.id, result.data);
+      console.log('Workout day created:', workoutDay);
+
       res.json(workoutDay);
     } catch (error) {
+      console.error('Error creating workout day:', error);
       res.status(500).json({
         error: "Failed to create workout day",
         message: error instanceof Error ? error.message : "Unknown error"
