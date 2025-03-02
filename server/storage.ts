@@ -80,44 +80,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExercise(userId: number, exercise: Omit<InsertExercise, "userId">): Promise<Exercise> {
-    logger.info('Creating exercise with data:', { 
-      userId,
-      exercise,
-      types: {
-        weightIncrement: typeof exercise.weightIncrement,
-        customStartingWeight: typeof exercise.customStartingWeight,
-        setsRange: Array.isArray(exercise.setsRange),
-        repsRange: Array.isArray(exercise.repsRange)
-      }
-    });
-
     try {
-      // Convert numeric values to strings for database storage
       const dbData = {
         ...exercise,
         userId,
-        weightIncrement: typeof exercise.weightIncrement === 'number' 
-          ? exercise.weightIncrement.toString() 
-          : exercise.weightIncrement,
-        customStartingWeight: exercise.customStartingWeight != null
-          ? exercise.customStartingWeight.toString()
-          : null,
-        // Ensure arrays are properly stored as JSONB
-        setsRange: Array.isArray(exercise.setsRange) 
-          ? exercise.setsRange 
-          : [Number(exercise.setsRange[0]), Number(exercise.setsRange[1])],
-        repsRange: Array.isArray(exercise.repsRange)
-          ? exercise.repsRange
-          : [Number(exercise.repsRange[0]), Number(exercise.repsRange[1])]
+        // Convert numeric values to strings for database storage
+        weightIncrement: exercise.weightIncrement.toString(),
+        customStartingWeight: exercise.customStartingWeight?.toString() ?? null,
       };
-
-      logger.info('Formatted database data:', dbData);
 
       const [created] = await db.insert(exercises)
         .values(dbData)
         .returning();
 
-      logger.info('Successfully created exercise:', created);
       return created;
     } catch (error) {
       logger.error('Error creating exercise:', {

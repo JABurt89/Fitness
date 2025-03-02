@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { exerciseSchema, type Exercise, type InsertExercise } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import * as z from 'zod';
 
 interface ExerciseFormProps {
   exercise?: Exercise | null;
@@ -25,13 +26,24 @@ const STARTING_WEIGHTS = {
 
 type StartingWeightType = keyof typeof STARTING_WEIGHTS;
 
+// Enhanced schema with custom starting weight validation
+const enhancedSchema = exerciseSchema.superRefine((data, ctx) => {
+  if (data.startingWeightType === "Custom" && !data.customStartingWeight) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Custom starting weight is required when using Custom type",
+      path: ["customStartingWeight"]
+    });
+  }
+});
+
 export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
   const form = useForm<InsertExercise>({
-    resolver: zodResolver(exerciseSchema),
+    resolver: zodResolver(enhancedSchema),
     defaultValues: {
       name: exercise?.name ?? "",
       bodyPart: exercise?.bodyPart ?? "",
@@ -41,69 +53,33 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       restTimer: exercise?.restTimer ?? 60,
       startingWeightType: (exercise?.startingWeightType as StartingWeightType) ?? "Barbell",
       customStartingWeight: exercise?.customStartingWeight ? Number(exercise.customStartingWeight) : undefined
-    },
-    mode: "onSubmit"
+    }
   });
-
-  console.log("Form mounted with values:", form.getValues());
 
   const mutation = useMutation({
     mutationFn: async (data: InsertExercise) => {
-      console.log('Starting mutation with data:', data);
       setIsSubmitting(true);
-
-      try {
-        const formattedData = {
-          ...data,
-          setsRange: [Number(data.setsRange[0]), Number(data.setsRange[1])],
-          repsRange: [Number(data.repsRange[0]), Number(data.repsRange[1])],
-          weightIncrement: Number(data.weightIncrement),
-          restTimer: Number(data.restTimer),
-          customStartingWeight: data.customStartingWeight ? Number(data.customStartingWeight) : undefined
-        };
-
-        console.log('Sending formatted data to server:', formattedData);
-        const response = await apiRequest('POST', '/api/exercises', formattedData);
-        console.log('Server response:', response);
-        return response;
-      } catch (error) {
-        console.error('Mutation error:', error);
-        throw error;
-      }
+      return await apiRequest('POST', '/api/exercises', data);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/exercises'] });
+      toast({ title: "Exercise created successfully" });
+      onSuccess?.();
+      form.reset();
     },
     onError: (error) => {
-      console.error('Mutation error handler:', error);
       toast({
         title: "Failed to create exercise",
         description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive"
       });
     },
-    onSuccess: (data) => {
-      console.log('Exercise created successfully:', data);
-      queryClient.invalidateQueries({ queryKey: ['/api/exercises'] });
-      toast({ title: "Exercise created successfully" });
-      onSuccess?.();
-      form.reset();
-    },
     onSettled: () => {
       setIsSubmitting(false);
     }
   });
 
-  const handleSubmit = form.handleSubmit(async (data) => {
-    console.log('Form submission handler called with data:', data);
-
-    if (Object.keys(form.formState.errors).length > 0) {
-      console.error('Form validation errors:', form.formState.errors);
-      toast({
-        title: "Validation Error",
-        description: "Please fix the form errors before submitting",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       await mutation.mutateAsync(data);
     } catch (error) {
@@ -113,13 +89,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
 
   return (
     <Form {...form}>
-      <form 
-        onSubmit={(e) => {
-          console.log('Form submit event triggered');
-          handleSubmit(e);
-        }} 
-        className="space-y-4"
-      >
+      <form onSubmit={onSubmit} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -273,10 +243,9 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
           render={({ field }) => (
             <FormItem>
               <FormLabel>Starting Weight Type</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
+              <Select
+                onValueChange={field.onChange}
                 value={field.value}
-                defaultValue={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -284,9 +253,9 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {Object.keys(STARTING_WEIGHTS).map((type) => (
+                  {Object.entries(STARTING_WEIGHTS).map(([type, weight]) => (
                     <SelectItem key={type} value={type}>
-                      {type} {type !== "Custom" && `(${STARTING_WEIGHTS[type as StartingWeightType]}kg)`}
+                      {type} {type !== "Custom" && `(${weight}kg)`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -319,15 +288,13 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
           />
         )}
 
-        <div className="space-y-2">
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isSubmitting || mutation.isPending}
-          >
-            {isSubmitting ? "Creating..." : "Create Exercise"}
-          </Button>
-        </div>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting || mutation.isPending}
+        >
+          {isSubmitting ? "Creating..." : "Create Exercise"}
+        </Button>
       </form>
     </Form>
   );

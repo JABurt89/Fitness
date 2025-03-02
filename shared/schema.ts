@@ -41,7 +41,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Exercise table and schema
+// Exercise table definition
 export const exercises = pgTable("exercises", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -51,33 +51,31 @@ export const exercises = pgTable("exercises", {
   repsRange: jsonb("reps_range").$type<[number, number]>().notNull(),
   weightIncrement: numeric("weight_increment").notNull(),
   restTimer: integer("rest_timer").notNull().default(60),
-  startingWeightType: text("starting_weight_type").notNull(),
+  startingWeightType: text("starting_weight_type").notNull().default('Barbell'),
   customStartingWeight: numeric("custom_starting_weight"),
 });
 
-// Exercise schema with validation
+// Exercise validation schema
 export const exerciseSchema = createInsertSchema(exercises).extend({
   name: z.string().min(1, "Exercise name is required"),
   bodyPart: z.string().min(1, "Body part is required"),
   setsRange: z.tuple([
-    z.number().int().positive("Minimum sets must be positive"),
-    z.number().int().positive("Maximum sets must be positive")
+    z.number().int().min(1, "Minimum sets must be at least 1"),
+    z.number().int().min(1, "Maximum sets must be at least 1")
   ]).refine(([min, max]) => min <= max, "Minimum sets must be less than or equal to maximum sets"),
   repsRange: z.tuple([
-    z.number().int().positive("Minimum reps must be positive"),
-    z.number().int().positive("Maximum reps must be positive")
+    z.number().int().min(1, "Minimum reps must be at least 1"),
+    z.number().int().min(1, "Maximum reps must be at least 1")
   ]).refine(([min, max]) => min <= max, "Minimum reps must be less than or equal to maximum reps"),
-  weightIncrement: z.union([
-    z.string().regex(/^\d*\.?\d+$/, "Weight increment must be a valid number"),
-    z.number().positive("Weight increment must be positive")
-  ]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
+  weightIncrement: z.number().positive("Weight increment must be positive"),
   restTimer: z.number().int().min(0, "Rest timer must be non-negative").default(60),
   startingWeightType: z.enum(["Barbell", "EZ Bar", "Dumbbell", "Smith Machine", "Custom"]),
-  customStartingWeight: z.union([
-    z.string().regex(/^\d*\.?\d+$/, "Custom starting weight must be a valid number"),
-    z.number().nonnegative("Custom starting weight must be non-negative")
-  ]).optional().transform(val => val ? (typeof val === 'string' ? parseFloat(val) : val) : undefined),
+  customStartingWeight: z.number().positive("Custom starting weight must be positive").optional(),
 });
+
+// Export types
+export type Exercise = typeof exercises.$inferSelect;
+export type InsertExercise = z.infer<typeof exerciseSchema>;
 
 export const workoutDays = pgTable("workout_days", {
   id: serial("id").primaryKey(),
