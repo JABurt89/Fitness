@@ -43,10 +43,10 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       bodyPart: exercise.bodyPart,
       setsRange: exercise.setsRange,
       repsRange: exercise.repsRange,
-      weightIncrement: exercise.weightIncrement,
+      weightIncrement: Number(exercise.weightIncrement),
       restTimer: exercise.restTimer,
       startingWeightType: exercise.startingWeightType as StartingWeightType,
-      customStartingWeight: exercise.customStartingWeight?.toString()
+      customStartingWeight: exercise.customStartingWeight ? Number(exercise.customStartingWeight) : undefined
     } : {
       name: "",
       bodyPart: "",
@@ -201,7 +201,8 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
                   type="number"
                   step="0.5"
                   {...field}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                  value={field.value}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </FormControl>
               <FormMessage />
@@ -264,7 +265,8 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
                     type="number"
                     step="0.5"
                     {...field}
-                    onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                    value={field.value ?? ""}
+                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
                   />
                 </FormControl>
                 <FormMessage />

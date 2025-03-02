@@ -87,7 +87,9 @@ export class DatabaseStorage implements IStorage {
         .values({
           ...exercise,
           userId,
+          // Ensure numeric values are stored as strings in the database
           weightIncrement: exercise.weightIncrement.toString(),
+          customStartingWeight: exercise.customStartingWeight?.toString(),
         })
         .returning();
 
