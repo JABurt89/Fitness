@@ -79,7 +79,8 @@ app.use((req, res, next) => {
           day_name TEXT NOT NULL,
           exercises JSONB NOT NULL,
           display_order INTEGER NOT NULL DEFAULT 0,
-          last_completed TIMESTAMP
+          last_completed TIMESTAMP,
+          progression_schemes JSONB NOT NULL DEFAULT '{}'::jsonb
         );
       `);
 
