@@ -184,6 +184,8 @@ export class DatabaseStorage implements IStorage {
         .values({
           ...workoutLog,
           userId,
+          weight: workoutLog.weight.toString(),
+          calculatedOneRM: workoutLog.calculatedOneRM.toString(),
           date: workoutLog.date || new Date()
         })
         .returning();
