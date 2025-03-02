@@ -51,6 +51,8 @@ export const exercises = pgTable("exercises", {
   repsRange: jsonb("reps_range").$type<[number, number]>().notNull(),
   weightIncrement: numeric("weight_increment").notNull(),
   restTimer: integer("rest_timer").notNull().default(60),
+  startingWeightType: text("starting_weight_type").notNull(),
+  customStartingWeight: numeric("custom_starting_weight"),
 });
 
 export const workoutDays = pgTable("workout_days", {
@@ -68,9 +70,9 @@ export const workoutLogs = pgTable("workout_logs", {
   userId: integer("user_id").notNull().references(() => users.id),
   date: timestamp("date").notNull().defaultNow(),
   exercise: text("exercise").notNull(),
-  completedSets: integer("completed_sets").notNull(),  
-  failedRep: integer("failed_rep").notNull(),          
-  targetReps: integer("target_reps").notNull(),        
+  completedSets: integer("completed_sets").notNull(),
+  failedRep: integer("failed_rep").notNull(),
+  targetReps: integer("target_reps").notNull(),
   weight: numeric("weight").notNull(),
   calculatedOneRM: numeric("calculated_one_rm").notNull(),
 });
@@ -136,6 +138,11 @@ export const exerciseSchema = createInsertSchema(exercises).extend({
     z.number().positive("Weight increment must be positive")
   ]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
   restTimer: z.number().int().min(0, "Rest timer must be non-negative").default(60),
+  startingWeightType: z.enum(["Barbell", "EZ Bar", "Dumbbell", "Smith Machine", "Custom"]),
+  customStartingWeight: z.union([
+    z.string().regex(/^\d*\.?\d+$/, "Custom starting weight must be a valid number"),
+    z.number().nonnegative("Custom starting weight must be non-negative")
+  ]).optional().transform(val => val ? (typeof val === 'string' ? parseFloat(val) : val) : undefined),
 });
 
 export const workoutDaySchema = createInsertSchema(workoutDays).extend({
