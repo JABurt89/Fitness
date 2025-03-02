@@ -2,6 +2,37 @@ import { pgTable, text, serial, numeric, timestamp, jsonb, integer } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Progression scheme enum and types
+export const ProgressionScheme = {
+  RETARDED_VOLUME: "RETARDED_VOLUME",
+  STRAIGHT_SETS: "STRAIGHT_SETS",
+  RPT_INDEPENDENT: "RPT_INDEPENDENT",
+} as const;
+
+export type ProgressionSchemeType = typeof ProgressionScheme[keyof typeof ProgressionScheme];
+
+// Progression scheme settings types
+export type StraightSetsSettings = {
+  targetWeight?: number;
+  targetSets: number;
+  targetReps: number;
+};
+
+export type RptIndependentSettings = {
+  topSetRepRange: [number, number];
+  dropPercentage: number; // 10-15%
+  backoffSets: Array<{
+    repRange: [number, number];
+    weight?: number;
+  }>;
+};
+
+export type ProgressionSettings = {
+  type: ProgressionSchemeType;
+  straightSets?: StraightSetsSettings;
+  rptIndependent?: RptIndependentSettings;
+};
+
 // User table for authentication
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -29,6 +60,7 @@ export const workoutDays = pgTable("workout_days", {
   exercises: jsonb("exercises").$type<string[]>().notNull(),
   displayOrder: integer("display_order").notNull().default(0),
   lastCompleted: timestamp("last_completed"),
+  progressionSchemes: jsonb("progression_schemes").$type<Record<string, ProgressionSettings>>().notNull().default({}),
 });
 
 export const workoutLogs = pgTable("workout_logs", {
@@ -55,11 +87,44 @@ export const userSchema = createInsertSchema(users).extend({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+// Progression scheme validation
+const progressionSettingsSchema = z.object({
+  type: z.enum([ProgressionScheme.RETARDED_VOLUME, ProgressionScheme.STRAIGHT_SETS, ProgressionScheme.RPT_INDEPENDENT]),
+  straightSets: z.object({
+    targetWeight: z.number().optional(),
+    targetSets: z.number().int().positive(),
+    targetReps: z.number().int().positive(),
+  }).optional(),
+  rptIndependent: z.object({
+    topSetRepRange: z.tuple([z.number().int(), z.number().int()]),
+    dropPercentage: z.number().min(10).max(15),
+    backoffSets: z.array(z.object({
+      repRange: z.tuple([z.number().int(), z.number().int()]),
+      weight: z.number().optional(),
+    })),
+  }).optional(),
+}).refine(
+  (data) => {
+    switch (data.type) {
+      case ProgressionScheme.STRAIGHT_SETS:
+        return !!data.straightSets;
+      case ProgressionScheme.RPT_INDEPENDENT:
+        return !!data.rptIndependent;
+      default:
+        return true;
+    }
+  },
+  {
+    message: "Progression scheme settings must match the selected type",
+  }
+);
+
 // Other schemas remain unchanged but will include userId in their types
 export const exerciseSchema = createInsertSchema(exercises);
 export const workoutDaySchema = createInsertSchema(workoutDays).extend({
   lastCompleted: z.string().datetime().nullable().optional()
     .transform(val => val ? new Date(val) : null),
+  progressionSchemes: z.record(z.string(), progressionSettingsSchema).default({}),
 });
 export const weightLogSchema = createInsertSchema(weightLog);
 
