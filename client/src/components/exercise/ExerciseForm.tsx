@@ -59,6 +59,13 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       startingWeightType: "Barbell",
       customStartingWeight: undefined
     },
+    mode: "onChange"
+  });
+
+  console.log('Form state:', {
+    isDirty: form.formState.isDirty,
+    errors: form.formState.errors,
+    isSubmitting: form.formState.isSubmitting
   });
 
   const mutation = useMutation({
@@ -109,19 +116,12 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       formState: form.formState
     });
 
-    if (Object.keys(form.formState.errors).length > 0) {
-      console.error('Form validation errors:', form.formState.errors);
-      return;
-    }
-
     try {
       await mutation.mutateAsync(data);
     } catch (error) {
       console.error('Form submission error:', error);
     }
   };
-
-  const startingWeightType = form.watch("startingWeightType") as StartingWeightType;
 
   return (
     <Form {...form}>
@@ -274,7 +274,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
           )}
         />
 
-        {startingWeightType === "Custom" && (
+        {form.watch("startingWeightType") === "Custom" && (
           <FormField
             control={form.control}
             name="customStartingWeight"
@@ -296,13 +296,20 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
           />
         )}
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isSubmitting || mutation.isPending}
-        >
-          {exercise ? 'Update' : 'Create'} Exercise
-        </Button>
+        <div className="space-y-2">
+          {Object.keys(form.formState.errors).length > 0 && (
+            <div className="text-sm text-destructive">
+              Please fix the validation errors before submitting.
+            </div>
+          )}
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isSubmitting || mutation.isPending}
+          >
+            {isSubmitting ? "Creating..." : "Create Exercise"}
+          </Button>
+        </div>
       </form>
     </Form>
   );
