@@ -67,30 +67,29 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
     }
   });
 
+  const getDefaultProgressionScheme = (): ProgressionSettings => ({
+    type: ProgressionScheme.RETARDED_VOLUME,
+    retardedVolume: {
+      baseWeight: 0,
+      targetSets: 4,
+      setVariations: [
+        { reps: 8, weightMultiplier: 1.0 },
+        { reps: 10, weightMultiplier: 0.9 },
+        { reps: 12, weightMultiplier: 0.85 },
+        { reps: 15, weightMultiplier: 0.8, isOptional: true }
+      ],
+      failureHandling: {
+        minRepsBeforeFailure: 6,
+        deloadPercentage: 0.10
+      }
+    }
+  });
+
   const handleProgressionSchemeChange = (exerciseName: string, schemeType: keyof typeof ProgressionScheme) => {
     const currentSchemes = form.getValues("progressionSchemes") || {};
     let newScheme: ProgressionSettings;
 
     switch (schemeType) {
-      case "RETARDED_VOLUME":
-        newScheme = {
-          type: ProgressionScheme.RETARDED_VOLUME,
-          retardedVolume: {
-            baseWeight: 0,
-            targetSets: 4,
-            setVariations: [
-              { reps: 8, weightMultiplier: 1.0 },
-              { reps: 10, weightMultiplier: 0.9 },
-              { reps: 12, weightMultiplier: 0.85 },
-              { reps: 15, weightMultiplier: 0.8, isOptional: true }
-            ],
-            failureHandling: {
-              minRepsBeforeFailure: 6,
-              deloadPercentage: 0.10
-            }
-          }
-        };
-        break;
       case "STRAIGHT_SETS":
         newScheme = {
           type: ProgressionScheme.STRAIGHT_SETS,
@@ -135,6 +134,9 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
             ]
           }
         };
+        break;
+      case "RETARDED_VOLUME":
+        newScheme = getDefaultProgressionScheme();
         break;
       default:
         return;
@@ -217,6 +219,16 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
                           const updated = checked
                             ? [...current, exercise.name]
                             : current.filter((name) => name !== exercise.name);
+
+                          // Initialize progression scheme when exercise is checked
+                          if (checked) {
+                            const currentSchemes = form.getValues("progressionSchemes");
+                            form.setValue("progressionSchemes", {
+                              ...currentSchemes,
+                              [exercise.name]: getDefaultProgressionScheme()
+                            }, { shouldValidate: true });
+                          }
+
                           form.setValue("exercises", updated, {
                             shouldValidate: true,
                             shouldDirty: true
@@ -234,6 +246,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
                         <Select
                           onValueChange={(value) => handleProgressionSchemeChange(exercise.name, value as keyof typeof ProgressionScheme)}
                           defaultValue="RETARDED_VOLUME"
+                          value={form.watch(`progressionSchemes.${exercise.name}.type`) || "RETARDED_VOLUME"}
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select progression type" />
