@@ -25,59 +25,59 @@ const STARTING_WEIGHTS = {
 
 type StartingWeightType = keyof typeof STARTING_WEIGHTS;
 
-// Refine schema to require customStartingWeight when startingWeightType is "Custom"
-const enhancedExerciseSchema = exerciseSchema.refine(
-  (data) => data.startingWeightType !== "Custom" || (data.customStartingWeight != null),
-  { message: "Custom starting weight is required for Custom type", path: ["customStartingWeight"] }
-);
-
 export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
   const form = useForm<InsertExercise>({
-    resolver: zodResolver(enhancedExerciseSchema),
-    defaultValues: exercise ? {
-      name: exercise.name,
-      bodyPart: exercise.bodyPart,
-      setsRange: exercise.setsRange,
-      repsRange: exercise.repsRange,
-      weightIncrement: Number(exercise.weightIncrement),
-      restTimer: exercise.restTimer,
-      startingWeightType: exercise.startingWeightType as StartingWeightType,
-      customStartingWeight: exercise.customStartingWeight ? Number(exercise.customStartingWeight) : undefined
-    } : {
-      name: "",
-      bodyPart: "",
-      setsRange: [3, 5],
-      repsRange: [8, 12],
-      weightIncrement: 2.5,
-      restTimer: 60,
-      startingWeightType: "Barbell",
-      customStartingWeight: undefined
+    resolver: zodResolver(exerciseSchema),
+    defaultValues: {
+      name: exercise?.name ?? "",
+      bodyPart: exercise?.bodyPart ?? "",
+      setsRange: exercise?.setsRange ?? [3, 5],
+      repsRange: exercise?.repsRange ?? [8, 12],
+      weightIncrement: exercise?.weightIncrement ? Number(exercise.weightIncrement) : 2.5,
+      restTimer: exercise?.restTimer ?? 60,
+      startingWeightType: (exercise?.startingWeightType as StartingWeightType) ?? "Barbell",
+      customStartingWeight: exercise?.customStartingWeight ? Number(exercise.customStartingWeight) : undefined
     },
-    mode: "onChange" // Validate as user types
+    mode: "onSubmit"
   });
+
+  console.log("Form mounted with values:", form.getValues());
 
   const mutation = useMutation({
     mutationFn: async (data: InsertExercise) => {
-      console.log('Starting exercise mutation with data:', data);
+      console.log('Starting mutation with data:', data);
       setIsSubmitting(true);
 
-      const formattedData = {
-        ...data,
-        setsRange: [Number(data.setsRange[0]), Number(data.setsRange[1])],
-        repsRange: [Number(data.repsRange[0]), Number(data.repsRange[1])],
-        weightIncrement: Number(data.weightIncrement),
-        restTimer: Number(data.restTimer),
-        customStartingWeight: data.customStartingWeight ? Number(data.customStartingWeight) : undefined
-      };
+      try {
+        const formattedData = {
+          ...data,
+          setsRange: [Number(data.setsRange[0]), Number(data.setsRange[1])],
+          repsRange: [Number(data.repsRange[0]), Number(data.repsRange[1])],
+          weightIncrement: Number(data.weightIncrement),
+          restTimer: Number(data.restTimer),
+          customStartingWeight: data.customStartingWeight ? Number(data.customStartingWeight) : undefined
+        };
 
-      console.log('Sending formatted data to server:', formattedData);
-      const response = await apiRequest('POST', '/api/exercises', formattedData);
-      console.log('Server response:', response);
-      return response;
+        console.log('Sending formatted data to server:', formattedData);
+        const response = await apiRequest('POST', '/api/exercises', formattedData);
+        console.log('Server response:', response);
+        return response;
+      } catch (error) {
+        console.error('Mutation error:', error);
+        throw error;
+      }
+    },
+    onError: (error) => {
+      console.error('Mutation error handler:', error);
+      toast({
+        title: "Failed to create exercise",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
     },
     onSuccess: (data) => {
       console.log('Exercise created successfully:', data);
@@ -86,24 +86,23 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       onSuccess?.();
       form.reset();
     },
-    onError: (error) => {
-      console.error('Exercise mutation error:', error);
-      toast({
-        title: "Failed to create exercise",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive"
-      });
-    },
     onSettled: () => {
       setIsSubmitting(false);
     }
   });
 
-  const onSubmit = form.handleSubmit(async (data) => {
-    console.log('Form submission starting:', {
-      formData: data,
-      errors: form.formState.errors
-    });
+  const handleSubmit = form.handleSubmit(async (data) => {
+    console.log('Form submission handler called with data:', data);
+
+    if (Object.keys(form.formState.errors).length > 0) {
+      console.error('Form validation errors:', form.formState.errors);
+      toast({
+        title: "Validation Error",
+        description: "Please fix the form errors before submitting",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       await mutation.mutateAsync(data);
@@ -114,7 +113,13 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form 
+        onSubmit={(e) => {
+          console.log('Form submit event triggered');
+          handleSubmit(e);
+        }} 
+        className="space-y-4"
+      >
         <FormField
           control={form.control}
           name="name"
@@ -268,7 +273,11 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
           render={({ field }) => (
             <FormItem>
               <FormLabel>Starting Weight Type</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
+              <Select 
+                onValueChange={field.onChange} 
+                value={field.value}
+                defaultValue={field.value}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select starting weight type" />
