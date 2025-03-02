@@ -1,88 +1,114 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormControl,
-  FormMessage,
-} from "@/components/ui/form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import type { Exercise, WorkoutDay, InsertWorkoutDay } from "@shared/schema";
-import { workoutDaySchema } from "@shared/schema";
+import { workoutDaySchema, type Exercise, type WorkoutDay, type InsertWorkoutDay } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 interface WorkoutDayFormProps {
-  workoutDay?: WorkoutDay | null;
   exercises: Exercise[];
   nextDayNumber: number;
   onSuccess?: () => void;
 }
 
 export default function WorkoutDayForm({
-  workoutDay,
   exercises,
   nextDayNumber,
   onSuccess,
 }: WorkoutDayFormProps) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Initialize form with default values
   const form = useForm<InsertWorkoutDay>({
     resolver: zodResolver(workoutDaySchema),
-    defaultValues: workoutDay || {
-      dayName: workoutDay?.dayName || `Day #${nextDayNumber}`,
+    defaultValues: {
+      dayName: `Day ${nextDayNumber}`,
       exercises: [],
       displayOrder: nextDayNumber - 1,
-    },
+      progressionSchemes: {}
+    }
   });
 
-  const mutation = useMutation({
+  // Mutation for creating workout day
+  const createWorkoutDay = useMutation({
     mutationFn: async (data: InsertWorkoutDay) => {
-      if (workoutDay) {
-        await apiRequest('PATCH', `/api/workout-days/${workoutDay.id}`, data);
-      } else {
-        await apiRequest('POST', '/api/workout-days', data);
-      }
+      console.log('Submitting workout day data:', data);
+      return await apiRequest('POST', '/api/workout-days', data);
+    },
+    onMutate: () => {
+      console.log('Starting workout day creation...');
+      setIsSubmitting(true);
     },
     onSuccess: () => {
+      console.log('Workout day created successfully');
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
-      toast({ title: `Workout day ${workoutDay ? 'updated' : 'created'} successfully` });
+      toast({ 
+        title: "Success",
+        description: "Workout day created successfully"
+      });
+      form.reset();
       onSuccess?.();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Workout day creation failed:', error);
       toast({
-        title: `Failed to ${workoutDay ? 'update' : 'create'} workout day`,
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create workout day",
         variant: "destructive"
       });
+    },
+    onSettled: () => {
+      setIsSubmitting(false);
+    }
+  });
+
+  // Form submission handler
+  const onSubmit = form.handleSubmit((data) => {
+    console.log('Form submission started with data:', data);
+
+    // Validate exercises selection
+    const selectedExercises = form.getValues("exercises");
+    if (!selectedExercises || selectedExercises.length === 0) {
+      console.log('No exercises selected');
+      toast({
+        title: "Validation Error",
+        description: "Please select at least one exercise",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Submit form data
+    try {
+      createWorkoutDay.mutate(data);
+    } catch (error) {
+      console.error('Form submission error:', error);
     }
   });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-6">
-        <div className="space-y-2">
-          <div className="text-sm text-muted-foreground">
-            Day #{nextDayNumber}
-          </div>
-          <FormField
-            control={form.control}
-            name="dayName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Workout Name</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="e.g., Shoulders, Legs, etc." />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+      <form onSubmit={onSubmit} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="dayName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Workout Name</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="e.g., Push Day, Legs Day" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
@@ -118,8 +144,12 @@ export default function WorkoutDayForm({
           )}
         />
 
-        <Button type="submit" className="w-full">
-          {workoutDay ? 'Update' : 'Create'} Workout Day
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Creating..." : "Create Workout Day"}
         </Button>
       </form>
     </Form>

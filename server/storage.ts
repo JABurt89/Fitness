@@ -130,24 +130,46 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createWorkoutDay(userId: number, workoutDay: Omit<InsertWorkoutDay, "userId">): Promise<WorkoutDay> {
-    const [maxOrder] = await db.select({ displayOrder: workoutDays.displayOrder })
-      .from(workoutDays)
-      .where(eq(workoutDays.userId, userId))
-      .orderBy(workoutDays.displayOrder)
-      .limit(1);
+    logger.info('Creating workout day:', {
+      userId,
+      workoutDay,
+      types: {
+        exercises: Array.isArray(workoutDay.exercises),
+        displayOrder: typeof workoutDay.displayOrder
+      }
+    });
 
-    const nextOrder = (maxOrder?.displayOrder ?? -1) + 1;
+    try {
+      // Get the current maximum display order
+      const [maxOrder] = await db.select({ displayOrder: workoutDays.displayOrder })
+        .from(workoutDays)
+        .where(eq(workoutDays.userId, userId))
+        .orderBy(workoutDays.displayOrder)
+        .limit(1);
 
-    const [created] = await db.insert(workoutDays)
-      .values({
-        ...workoutDay,
-        userId,
-        exercises: workoutDay.exercises as string[],
-        displayOrder: nextOrder,
-      })
-      .returning();
+      const nextOrder = (maxOrder?.displayOrder ?? -1) + 1;
+      logger.info('Calculated next display order:', nextOrder);
 
-    return created;
+      const [created] = await db.insert(workoutDays)
+        .values({
+          ...workoutDay,
+          userId,
+          displayOrder: nextOrder,
+          exercises: workoutDay.exercises,
+          progressionSchemes: workoutDay.progressionSchemes || {}
+        })
+        .returning();
+
+      logger.info('Successfully created workout day:', created);
+      return created;
+    } catch (error) {
+      logger.error('Error creating workout day:', {
+        error,
+        stack: error instanceof Error ? error.stack : undefined,
+        data: { userId, workoutDay }
+      });
+      throw error;
+    }
   }
 
   async updateWorkoutDay(userId: number, id: number, workoutDay: Partial<InsertWorkoutDay>): Promise<WorkoutDay> {

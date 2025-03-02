@@ -91,6 +91,7 @@ export const exerciseSchema = baseExerciseSchema.refine(
 export type Exercise = typeof exercises.$inferSelect;
 export type InsertExercise = z.infer<typeof exerciseSchema>;
 
+// Workout day schema
 export const workoutDays = pgTable("workout_days", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -101,6 +102,20 @@ export const workoutDays = pgTable("workout_days", {
   progressionSchemes: jsonb("progression_schemes").$type<Record<string, ProgressionSettings>>().notNull().default({}),
 });
 
+// Base workout day schema
+export const workoutDaySchema = z.object({
+  dayName: z.string().min(1, "Day name is required"),
+  exercises: z.array(z.string()).min(1, "Select at least one exercise"),
+  displayOrder: z.number().int().min(0).default(0),
+  lastCompleted: z.date().nullable().optional(),
+  progressionSchemes: z.record(z.string(), progressionSettingsSchema).default({})
+});
+
+// Export types
+export type WorkoutDay = typeof workoutDays.$inferSelect;
+export type InsertWorkoutDay = z.infer<typeof workoutDaySchema>;
+
+// Workout logs table
 export const workoutLogs = pgTable("workout_logs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),

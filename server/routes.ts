@@ -185,17 +185,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/workout-days", async (req, res) => {
+    logger.info('Workout day creation request received:', {
+      body: req.body,
+      user: req.user?.id,
+      timestamp: new Date().toISOString()
+    });
+
     if (!req.user) {
+      logger.warn('Unauthorized workout day creation attempt');
       return res.status(401).json({ error: "Unauthorized" });
     }
-    logger.info(`POST /api/workout-days`, {payload: req.body});
-    const result = workoutDaySchema.safeParse(req.body);
-    if (!result.success) {
-      res.status(400).json({ error: result.error });
-      return;
+
+    try {
+      logger.info('Validating workout day data:', req.body);
+      const result = workoutDaySchema.safeParse(req.body);
+
+      if (!result.success) {
+        logger.error('Workout day validation failed:', {
+          errors: result.error.errors,
+          receivedData: req.body
+        });
+        return res.status(400).json({ 
+          error: "Validation failed",
+          details: result.error.errors 
+        });
+      }
+
+      if (!result.data.exercises || result.data.exercises.length === 0) {
+        logger.error('No exercises selected for workout day');
+        return res.status(400).json({ 
+          error: "Validation failed",
+          details: "At least one exercise must be selected" 
+        });
+      }
+
+      logger.info('Creating workout day:', {
+        userId: req.user.id,
+        data: result.data
+      });
+
+      const workoutDay = await storage.createWorkoutDay(req.user.id, result.data);
+
+      logger.info('Workout day created successfully:', {
+        id: workoutDay.id,
+        exercises: workoutDay.exercises
+      });
+
+      res.json(workoutDay);
+    } catch (error) {
+      logger.error('Error creating workout day:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        requestBody: req.body
+      });
+
+      res.status(500).json({
+        error: "Failed to create workout day",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
-    const workoutDay = await storage.createWorkoutDay(req.user.id, result.data);
-    res.json(workoutDay);
   });
 
   app.patch("/api/workout-days/:id", async (req, res) => {
