@@ -2,7 +2,7 @@ import { pgTable, text, serial, numeric, timestamp, jsonb, integer } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Progression scheme enum and types
+// Progression scheme types and enums remain unchanged
 export const ProgressionScheme = {
   RETARDED_VOLUME: "RETARDED_VOLUME",
   STRAIGHT_SETS: "STRAIGHT_SETS",
@@ -11,7 +11,7 @@ export const ProgressionScheme = {
 
 export type ProgressionSchemeType = typeof ProgressionScheme[keyof typeof ProgressionScheme];
 
-// Progression scheme settings types
+// Keep existing progression settings types
 export type StraightSetsSettings = {
   targetWeight?: number;
   targetSets: number;
@@ -20,7 +20,7 @@ export type StraightSetsSettings = {
 
 export type RptIndependentSettings = {
   topSetRepRange: [number, number];
-  dropPercentage: number; // 10-15%
+  dropPercentage: number;
   backoffSets: Array<{
     repRange: [number, number];
     weight?: number;
@@ -33,7 +33,7 @@ export type ProgressionSettings = {
   rptIndependent?: RptIndependentSettings;
 };
 
-// User table for authentication
+// Table definitions
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -41,7 +41,6 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Exercise table definition
 export const exercises = pgTable("exercises", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -55,92 +54,7 @@ export const exercises = pgTable("exercises", {
   customStartingWeight: numeric("custom_starting_weight"),
 });
 
-// Base exercise schema
-const baseExerciseSchema = z.object({
-  name: z.string().min(1, "Exercise name is required"),
-  bodyPart: z.string().min(1, "Body part is required"),
-  setsRange: z.tuple([
-    z.number().int().min(1, "Minimum sets must be at least 1"),
-    z.number().int().min(1, "Maximum sets must be at least 1")
-  ]).refine(([min, max]) => min <= max, "Minimum sets must be less than or equal to maximum sets"),
-  repsRange: z.tuple([
-    z.number().int().min(1, "Minimum reps must be at least 1"),
-    z.number().int().min(1, "Maximum reps must be at least 1")
-  ]).refine(([min, max]) => min <= max, "Minimum reps must be less than or equal to maximum reps"),
-  weightIncrement: z.number().min(0.5, "Weight increment must be at least 0.5"),
-  restTimer: z.number().int().min(0, "Rest timer must be non-negative"),
-  startingWeightType: z.enum(["Barbell", "EZ Bar", "Dumbbell", "Smith Machine", "Custom"]),
-  customStartingWeight: z.number().positive("Custom starting weight must be positive").optional(),
-});
-
-// Exercise validation schema with custom validation
-export const exerciseSchema = baseExerciseSchema.refine(
-  (data) => {
-    if (data.startingWeightType === "Custom") {
-      return data.customStartingWeight != null;
-    }
-    return true;
-  },
-  {
-    message: "Custom starting weight is required when using Custom type",
-    path: ["customStartingWeight"],
-  }
-);
-
-// Export types
-export type Exercise = typeof exercises.$inferSelect;
-export type InsertExercise = z.infer<typeof exerciseSchema>;
-
-// Workout day schema
-export const workoutDays = pgTable("workout_days", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  dayName: text("day_name").notNull(),
-  exercises: jsonb("exercises").$type<string[]>().notNull(),
-  displayOrder: integer("display_order").notNull().default(0),
-  lastCompleted: timestamp("last_completed"),
-  progressionSchemes: jsonb("progression_schemes").$type<Record<string, ProgressionSettings>>().notNull().default({}),
-});
-
-// Base workout day schema
-export const workoutDaySchema = z.object({
-  dayName: z.string().min(1, "Day name is required"),
-  exercises: z.array(z.string()).min(1, "Select at least one exercise"),
-  displayOrder: z.number().int().min(0).default(0),
-  lastCompleted: z.date().nullable().optional(),
-  progressionSchemes: z.record(z.string(), progressionSettingsSchema).default({})
-});
-
-// Export types
-export type WorkoutDay = typeof workoutDays.$inferSelect;
-export type InsertWorkoutDay = z.infer<typeof workoutDaySchema>;
-
-// Workout logs table
-export const workoutLogs = pgTable("workout_logs", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  date: timestamp("date").notNull().defaultNow(),
-  exercise: text("exercise").notNull(),
-  completedSets: integer("completed_sets").notNull(),
-  failedRep: integer("failed_rep").notNull(),
-  targetReps: integer("target_reps").notNull(),
-  weight: numeric("weight").notNull(),
-  calculatedOneRM: numeric("calculated_one_rm").notNull(),
-});
-
-export const weightLog = pgTable("weight_log", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id),
-  date: timestamp("date").notNull().defaultNow(),
-  weight: numeric("weight").notNull(),
-});
-
-// Authentication schemas
-export const userSchema = createInsertSchema(users).extend({
-  password: z.string().min(6, "Password must be at least 6 characters"),
-});
-
-// Progression scheme validation
+// Validation schemas
 const progressionSettingsSchema = z.object({
   type: z.enum([ProgressionScheme.RETARDED_VOLUME, ProgressionScheme.STRAIGHT_SETS, ProgressionScheme.RPT_INDEPENDENT]),
   straightSets: z.object({
@@ -172,12 +86,80 @@ const progressionSettingsSchema = z.object({
   }
 );
 
-export const workoutDaySchema = createInsertSchema(workoutDays).extend({
-  lastCompleted: z.string().datetime().nullable().optional()
-    .transform(val => val ? new Date(val) : null),
-  progressionSchemes: z.record(z.string(), progressionSettingsSchema).default({}),
+// Exercise schema
+const baseExerciseSchema = z.object({
+  name: z.string().min(1, "Exercise name is required"),
+  bodyPart: z.string().min(1, "Body part is required"),
+  setsRange: z.tuple([
+    z.number().int().min(1, "Minimum sets must be at least 1"),
+    z.number().int().min(1, "Maximum sets must be at least 1")
+  ]).refine(([min, max]) => min <= max, "Minimum sets must be less than or equal to maximum sets"),
+  repsRange: z.tuple([
+    z.number().int().min(1, "Minimum reps must be at least 1"),
+    z.number().int().min(1, "Maximum reps must be at least 1")
+  ]).refine(([min, max]) => min <= max, "Minimum reps must be less than or equal to maximum reps"),
+  weightIncrement: z.number().min(0.5, "Weight increment must be at least 0.5"),
+  restTimer: z.number().int().min(0, "Rest timer must be non-negative"),
+  startingWeightType: z.enum(["Barbell", "EZ Bar", "Dumbbell", "Smith Machine", "Custom"]),
+  customStartingWeight: z.number().positive("Custom starting weight must be positive").optional(),
 });
-export const weightLogSchema = createInsertSchema(weightLog);
+
+export const exerciseSchema = baseExerciseSchema.refine(
+  (data) => {
+    if (data.startingWeightType === "Custom") {
+      return data.customStartingWeight != null;
+    }
+    return true;
+  },
+  {
+    message: "Custom starting weight is required when using Custom type",
+    path: ["customStartingWeight"],
+  }
+);
+
+// Workout days table and schema
+export const workoutDays = pgTable("workout_days", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  dayName: text("day_name").notNull(),
+  exercises: jsonb("exercises").$type<string[]>().notNull(),
+  displayOrder: integer("display_order").notNull().default(0),
+  lastCompleted: timestamp("last_completed"),
+  progressionSchemes: jsonb("progression_schemes").$type<Record<string, ProgressionSettings>>().notNull().default({}),
+});
+
+export const workoutDaySchema = z.object({
+  dayName: z.string().min(1, "Day name is required"),
+  exercises: z.array(z.string()).min(1, "Select at least one exercise"),
+  displayOrder: z.number().int().min(0).default(0),
+  lastCompleted: z.date().nullable().optional(),
+  progressionSchemes: z.record(z.string(), progressionSettingsSchema).default({})
+});
+
+// Workout logs and weight log tables
+export const workoutLogs = pgTable("workout_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  date: timestamp("date").notNull().defaultNow(),
+  exercise: text("exercise").notNull(),
+  completedSets: integer("completed_sets").notNull(),
+  failedRep: integer("failed_rep").notNull(),
+  targetReps: integer("target_reps").notNull(),
+  weight: numeric("weight").notNull(),
+  calculatedOneRM: numeric("calculated_one_rm").notNull(),
+});
+
+export const weightLog = pgTable("weight_log", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  date: timestamp("date").notNull().defaultNow(),
+  weight: numeric("weight").notNull(),
+});
+
+// Authentication schemas
+export const userSchema = createInsertSchema(users).extend({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
 // Base workout log validation
 const baseWorkoutLogFields = {
@@ -207,6 +189,15 @@ export const automaticWorkoutLogSchema = z.object(baseWorkoutLogFields)
     ...data,
     date: data.date || new Date()
   }));
+
+// Weight log schema
+export const weightLogSchema = z.object({
+  weight: z.number().positive("Weight must be positive"),
+  date: z.date().or(z.string().transform(val => new Date(val))).optional()
+}).transform(data => ({
+  ...data,
+  date: data.date || new Date()
+}));
 
 // Export types
 export type User = typeof users.$inferSelect;
