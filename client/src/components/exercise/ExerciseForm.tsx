@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { exerciseSchema, type Exercise, type InsertExercise } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
 
 interface ExerciseFormProps {
   exercise?: Exercise | null;
@@ -92,7 +91,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
     }
   });
 
-  const onSubmit = (data: InsertExercise) => {
+  const onSubmit = async (data: InsertExercise) => {
     console.log('Form submission starting with values:', {
       formData: data,
       formState: form.formState
@@ -103,7 +102,16 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       return;
     }
 
-    mutation.mutate(data);
+    try {
+      await mutation.mutateAsync(data);
+    } catch (error) {
+      console.error('Form submission error:', error);
+      toast({
+        title: "Failed to submit form",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
   const startingWeightType = form.watch("startingWeightType") as StartingWeightType;
