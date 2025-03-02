@@ -6,8 +6,15 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { workoutDaySchema, type Exercise, type InsertWorkoutDay } from "@shared/schema";
+import { 
+  workoutDaySchema, 
+  type Exercise, 
+  type InsertWorkoutDay,
+  ProgressionScheme,
+  type ProgressionSettings
+} from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 interface WorkoutDayFormProps {
@@ -24,6 +31,7 @@ export default function WorkoutDayForm({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
 
   const form = useForm<InsertWorkoutDay>({
     resolver: zodResolver(workoutDaySchema),
@@ -63,7 +71,6 @@ export default function WorkoutDayForm({
   const onSubmit = form.handleSubmit((data) => {
     setIsSubmitting(true);
 
-    // Extra validation for exercise selection
     if (!data.exercises || data.exercises.length === 0) {
       setIsSubmitting(false);
       toast({
@@ -76,6 +83,66 @@ export default function WorkoutDayForm({
 
     createWorkoutDay.mutate(data);
   });
+
+  const handleProgressionSchemeChange = (exerciseName: string, schemeType: keyof typeof ProgressionScheme) => {
+    const currentSchemes = form.getValues("progressionSchemes") || {};
+    let newScheme: ProgressionSettings;
+
+    switch (schemeType) {
+      case "STRAIGHT_SETS":
+        newScheme = {
+          type: ProgressionScheme.STRAIGHT_SETS,
+          straightSets: {
+            targetSets: 3,
+            targetReps: 8,
+            weight: 0
+          }
+        };
+        break;
+      case "REVERSE_PYRAMID":
+        newScheme = {
+          type: ProgressionScheme.REVERSE_PYRAMID,
+          reversePyramid: {
+            topSetWeight: 0,
+            topSetReps: 6,
+            dropPercentage: 0.10,
+            backoffSets: 2
+          }
+        };
+        break;
+      case "DOUBLE_PROGRESSION":
+        newScheme = {
+          type: ProgressionScheme.DOUBLE_PROGRESSION,
+          doubleProgression: {
+            repRangeMin: 8,
+            repRangeMax: 12,
+            targetSets: 3,
+            currentWeight: 0
+          }
+        };
+        break;
+      case "RPT_INDEPENDENT":
+        newScheme = {
+          type: ProgressionScheme.RPT_INDEPENDENT,
+          rptIndependent: {
+            topSetRepRange: [6, 8],
+            dropPercentage: 0.10,
+            backoffSets: [
+              { repRange: [8, 10] },
+              { repRange: [10, 12] }
+            ]
+          }
+        };
+        break;
+      default:
+        return;
+    }
+
+    form.setValue("progressionSchemes", {
+      ...currentSchemes,
+      [exerciseName]: newScheme
+    });
+  };
 
   return (
     <Form {...form}>
@@ -104,25 +171,50 @@ export default function WorkoutDayForm({
           render={() => (
             <FormItem>
               <FormLabel>Exercises</FormLabel>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {exercises.map((exercise) => (
-                  <div key={exercise.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={form.watch("exercises").includes(exercise.name)}
-                      onCheckedChange={(checked) => {
-                        const current = form.watch("exercises");
-                        const updated = checked
-                          ? [...current, exercise.name]
-                          : current.filter((name) => name !== exercise.name);
-                        form.setValue("exercises", updated, {
-                          shouldValidate: true,
-                          shouldDirty: true
-                        });
-                      }}
-                    />
-                    <label className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      {exercise.name}
-                    </label>
+                  <div key={exercise.id} className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={form.watch("exercises").includes(exercise.name)}
+                        onCheckedChange={(checked) => {
+                          const current = form.watch("exercises");
+                          const updated = checked
+                            ? [...current, exercise.name]
+                            : current.filter((name) => name !== exercise.name);
+                          form.setValue("exercises", updated, {
+                            shouldValidate: true,
+                            shouldDirty: true
+                          });
+                          if (checked) {
+                            setSelectedExercise(exercise.name);
+                          }
+                        }}
+                      />
+                      <label className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                        {exercise.name}
+                      </label>
+                    </div>
+
+                    {form.watch("exercises").includes(exercise.name) && (
+                      <div className="ml-6">
+                        <FormLabel className="text-xs">Progression Scheme</FormLabel>
+                        <Select
+                          onValueChange={(value) => handleProgressionSchemeChange(exercise.name, value as keyof typeof ProgressionScheme)}
+                          defaultValue="STRAIGHT_SETS"
+                        >
+                          <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select progression type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="STRAIGHT_SETS">Straight Sets</SelectItem>
+                            <SelectItem value="REVERSE_PYRAMID">Reverse Pyramid</SelectItem>
+                            <SelectItem value="DOUBLE_PROGRESSION">Double Progression</SelectItem>
+                            <SelectItem value="RPT_INDEPENDENT">RPT Independent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

@@ -2,20 +2,35 @@ import { pgTable, text, serial, numeric, timestamp, jsonb, integer } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Progression scheme types and enums remain unchanged
+// Add more progression scheme types
 export const ProgressionScheme = {
-  RETARDED_VOLUME: "RETARDED_VOLUME",
   STRAIGHT_SETS: "STRAIGHT_SETS",
+  REVERSE_PYRAMID: "REVERSE_PYRAMID",
+  DOUBLE_PROGRESSION: "DOUBLE_PROGRESSION",
   RPT_INDEPENDENT: "RPT_INDEPENDENT",
 } as const;
 
 export type ProgressionSchemeType = typeof ProgressionScheme[keyof typeof ProgressionScheme];
 
-// Keep existing progression settings types
+// Define settings for each progression type
 export type StraightSetsSettings = {
-  targetWeight?: number;
   targetSets: number;
   targetReps: number;
+  weight: number;
+};
+
+export type ReversePyramidSettings = {
+  topSetWeight: number;
+  topSetReps: number;
+  dropPercentage: number; // e.g., 10% = 0.10
+  backoffSets: number;
+};
+
+export type DoubleProgressionSettings = {
+  repRangeMin: number;
+  repRangeMax: number;
+  targetSets: number;
+  currentWeight: number;
 };
 
 export type RptIndependentSettings = {
@@ -30,6 +45,8 @@ export type RptIndependentSettings = {
 export type ProgressionSettings = {
   type: ProgressionSchemeType;
   straightSets?: StraightSetsSettings;
+  reversePyramid?: ReversePyramidSettings;
+  doubleProgression?: DoubleProgressionSettings;
   rptIndependent?: RptIndependentSettings;
 };
 
@@ -56,25 +73,46 @@ export const exercises = pgTable("exercises", {
 
 // Validation schemas
 const progressionSettingsSchema = z.object({
-  type: z.enum([ProgressionScheme.RETARDED_VOLUME, ProgressionScheme.STRAIGHT_SETS, ProgressionScheme.RPT_INDEPENDENT]),
+  type: z.enum([
+    ProgressionScheme.STRAIGHT_SETS,
+    ProgressionScheme.REVERSE_PYRAMID,
+    ProgressionScheme.DOUBLE_PROGRESSION,
+    ProgressionScheme.RPT_INDEPENDENT
+  ]),
   straightSets: z.object({
-    targetWeight: z.number().optional(),
     targetSets: z.number().int().positive(),
     targetReps: z.number().int().positive(),
+    weight: z.number().positive()
+  }).optional(),
+  reversePyramid: z.object({
+    topSetWeight: z.number().positive(),
+    topSetReps: z.number().int().positive(),
+    dropPercentage: z.number().min(0.05).max(0.15), // 5-15% drop
+    backoffSets: z.number().int().positive()
+  }).optional(),
+  doubleProgression: z.object({
+    repRangeMin: z.number().int().positive(),
+    repRangeMax: z.number().int().positive(),
+    targetSets: z.number().int().positive(),
+    currentWeight: z.number().positive()
   }).optional(),
   rptIndependent: z.object({
     topSetRepRange: z.tuple([z.number().int(), z.number().int()]),
-    dropPercentage: z.number().min(10).max(15),
+    dropPercentage: z.number().min(0.05).max(0.15),
     backoffSets: z.array(z.object({
       repRange: z.tuple([z.number().int(), z.number().int()]),
-      weight: z.number().optional(),
-    })),
-  }).optional(),
+      weight: z.number().optional()
+    }))
+  }).optional()
 }).refine(
   (data) => {
     switch (data.type) {
       case ProgressionScheme.STRAIGHT_SETS:
         return !!data.straightSets;
+      case ProgressionScheme.REVERSE_PYRAMID:
+        return !!data.reversePyramid;
+      case ProgressionScheme.DOUBLE_PROGRESSION:
+        return !!data.doubleProgression;
       case ProgressionScheme.RPT_INDEPENDENT:
         return !!data.rptIndependent;
       default:
