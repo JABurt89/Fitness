@@ -80,10 +80,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createExercise(userId: number, exercise: Omit<InsertExercise, "userId">): Promise<Exercise> {
-    const [created] = await db.insert(exercises)
-      .values({ ...exercise, userId })
-      .returning();
-    return created;
+    logger.info('Creating exercise with data:', { ...exercise, userId });
+
+    try {
+      const [created] = await db.insert(exercises)
+        .values({
+          ...exercise,
+          userId,
+          weightIncrement: exercise.weightIncrement.toString(),
+        })
+        .returning();
+
+      logger.info('Successfully created exercise:', created);
+      return created;
+    } catch (error) {
+      logger.error('Error creating exercise:', error);
+      throw error;
+    }
   }
 
   async updateExercise(userId: number, id: number, exercise: Partial<InsertExercise>): Promise<Exercise> {

@@ -96,6 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(exercises);
   });
 
+  // Exercise creation endpoint
   app.post("/api/exercises", async (req, res) => {
     logger.info('Exercise creation request received:', {
       body: req.body,

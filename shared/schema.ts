@@ -41,7 +41,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-// Modified tables to include user references
+// Exercise table and schema
 export const exercises = pgTable("exercises", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -53,6 +53,30 @@ export const exercises = pgTable("exercises", {
   restTimer: integer("rest_timer").notNull().default(60),
   startingWeightType: text("starting_weight_type").notNull(),
   customStartingWeight: numeric("custom_starting_weight"),
+});
+
+// Exercise schema with validation
+export const exerciseSchema = createInsertSchema(exercises).extend({
+  name: z.string().min(1, "Exercise name is required"),
+  bodyPart: z.string().min(1, "Body part is required"),
+  setsRange: z.tuple([
+    z.number().int().positive("Minimum sets must be positive"),
+    z.number().int().positive("Maximum sets must be positive")
+  ]).refine(([min, max]) => min <= max, "Minimum sets must be less than or equal to maximum sets"),
+  repsRange: z.tuple([
+    z.number().int().positive("Minimum reps must be positive"),
+    z.number().int().positive("Maximum reps must be positive")
+  ]).refine(([min, max]) => min <= max, "Minimum reps must be less than or equal to maximum reps"),
+  weightIncrement: z.union([
+    z.string().regex(/^\d*\.?\d+$/, "Weight increment must be a valid number"),
+    z.number().positive("Weight increment must be positive")
+  ]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
+  restTimer: z.number().int().min(0, "Rest timer must be non-negative").default(60),
+  startingWeightType: z.enum(["Barbell", "EZ Bar", "Dumbbell", "Smith Machine", "Custom"]),
+  customStartingWeight: z.union([
+    z.string().regex(/^\d*\.?\d+$/, "Custom starting weight must be a valid number"),
+    z.number().nonnegative("Custom starting weight must be non-negative")
+  ]).optional().transform(val => val ? (typeof val === 'string' ? parseFloat(val) : val) : undefined),
 });
 
 export const workoutDays = pgTable("workout_days", {
@@ -120,30 +144,6 @@ const progressionSettingsSchema = z.object({
     message: "Progression scheme settings must match the selected type",
   }
 );
-
-// Modify the exercise schema to be more specific and add better validation
-export const exerciseSchema = createInsertSchema(exercises).extend({
-  name: z.string().min(1, "Exercise name is required"),
-  bodyPart: z.string().min(1, "Body part is required"),
-  setsRange: z.tuple([
-    z.number().int().positive("Minimum sets must be positive"),
-    z.number().int().positive("Maximum sets must be positive")
-  ]).refine(([min, max]) => min <= max, "Minimum sets must be less than or equal to maximum sets"),
-  repsRange: z.tuple([
-    z.number().int().positive("Minimum reps must be positive"),
-    z.number().int().positive("Maximum reps must be positive")
-  ]).refine(([min, max]) => min <= max, "Minimum reps must be less than or equal to maximum reps"),
-  weightIncrement: z.union([
-    z.string().regex(/^\d*\.?\d+$/, "Weight increment must be a valid number"),
-    z.number().positive("Weight increment must be positive")
-  ]).transform(val => typeof val === 'string' ? parseFloat(val) : val),
-  restTimer: z.number().int().min(0, "Rest timer must be non-negative").default(60),
-  startingWeightType: z.enum(["Barbell", "EZ Bar", "Dumbbell", "Smith Machine", "Custom"]),
-  customStartingWeight: z.union([
-    z.string().regex(/^\d*\.?\d+$/, "Custom starting weight must be a valid number"),
-    z.number().nonnegative("Custom starting weight must be non-negative")
-  ]).optional().transform(val => val ? (typeof val === 'string' ? parseFloat(val) : val) : undefined),
-});
 
 export const workoutDaySchema = createInsertSchema(workoutDays).extend({
   lastCompleted: z.string().datetime().nullable().optional()
