@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import WorkoutDayForm from "@/components/workout/WorkoutDayForm";
@@ -88,12 +88,14 @@ export default function WorkoutDays() {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <WorkoutDayForm
-              workoutDay={selectedDay}
-              exercises={exercises || []}
-              nextDayNumber={sortedWorkouts.length + 1}
-              onSuccess={() => setIsOpen(false)}
-            />
+            <DialogHeader>
+              <WorkoutDayForm
+                workoutDay={selectedDay}
+                exercises={exercises || []}
+                nextDayNumber={sortedWorkouts.length + 1}
+                onSuccess={() => setIsOpen(false)}
+              />
+            </DialogHeader>
           </DialogContent>
         </Dialog>
       </div>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { 
   workoutDaySchema, 
@@ -199,103 +200,110 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="text-sm text-muted-foreground">
-          Day #{nextDayNumber}
-        </div>
+    <>
+      <DialogTitle>Create Workout Day</DialogTitle>
+      <DialogDescription>
+        Configure your workout day by selecting exercises and their progression schemes.
+      </DialogDescription>
 
-        <FormField
-          control={form.control}
-          name="dayName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Workout Name</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="e.g., Push Day, Legs Day" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="text-sm text-muted-foreground">
+            Day #{nextDayNumber}
+          </div>
 
-        <FormField
-          control={form.control}
-          name="exercises"
-          render={() => (
-            <FormItem>
-              <FormLabel>Exercises</FormLabel>
-              <div className="space-y-4">
-                {exercises.map((exercise) => (
-                  <div key={exercise.id} className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={form.watch("exercises").includes(exercise.name)}
-                        onCheckedChange={(checked) => {
-                          console.log('Exercise checkbox changed:', { exercise: exercise.name, checked });
-                          const current = form.watch("exercises");
-                          const updated = checked
-                            ? [...current, exercise.name]
-                            : current.filter((name) => name !== exercise.name);
+          <FormField
+            control={form.control}
+            name="dayName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Workout Name</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="e.g., Push Day, Legs Day" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-                          // Initialize progression scheme when exercise is checked
-                          if (checked) {
-                            console.log('Initializing progression scheme for:', exercise.name);
-                            const currentSchemes = form.getValues("progressionSchemes");
-                            form.setValue("progressionSchemes", {
-                              ...currentSchemes,
-                              [exercise.name]: getDefaultProgressionScheme()
-                            }, { shouldValidate: true });
-                          }
+          <FormField
+            control={form.control}
+            name="exercises"
+            render={() => (
+              <FormItem>
+                <FormLabel>Exercises</FormLabel>
+                <div className="space-y-4">
+                  {exercises.map((exercise) => (
+                    <div key={exercise.id} className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={form.watch("exercises").includes(exercise.name)}
+                          onCheckedChange={(checked) => {
+                            console.log('Exercise checkbox changed:', { exercise: exercise.name, checked });
+                            const current = form.watch("exercises");
+                            const updated = checked
+                              ? [...current, exercise.name]
+                              : current.filter((name) => name !== exercise.name);
 
-                          form.setValue("exercises", updated, {
-                            shouldValidate: true,
-                            shouldDirty: true
-                          });
-                        }}
-                      />
-                      <label className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        {exercise.name}
-                      </label>
-                    </div>
+                            // Initialize progression scheme when exercise is checked
+                            if (checked) {
+                              console.log('Initializing progression scheme for:', exercise.name);
+                              const currentSchemes = form.getValues("progressionSchemes");
+                              form.setValue("progressionSchemes", {
+                                ...currentSchemes,
+                                [exercise.name]: getDefaultProgressionScheme()
+                              }, { shouldValidate: true });
+                            }
 
-                    {form.watch("exercises").includes(exercise.name) && (
-                      <div className="ml-6">
-                        <FormLabel className="text-xs">Progression Scheme</FormLabel>
-                        <Select
-                          onValueChange={(value) => handleProgressionSchemeChange(exercise.name, value as keyof typeof ProgressionScheme)}
-                          defaultValue="RETARDED_VOLUME"
-                          value={form.watch(`progressionSchemes.${exercise.name}.type`) || "RETARDED_VOLUME"}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue placeholder="Select progression type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="RETARDED_VOLUME">Retarded Volume</SelectItem>
-                            <SelectItem value="STRAIGHT_SETS">Straight Sets</SelectItem>
-                            <SelectItem value="REVERSE_PYRAMID">Reverse Pyramid</SelectItem>
-                            <SelectItem value="DOUBLE_PROGRESSION">Double Progression</SelectItem>
-                            <SelectItem value="RPT_INDEPENDENT">RPT Independent</SelectItem>
-                          </SelectContent>
-                        </Select>
+                            form.setValue("exercises", updated, {
+                              shouldValidate: true,
+                              shouldDirty: true
+                            });
+                          }}
+                        />
+                        <label className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                          {exercise.name}
+                        </label>
                       </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
-        <Button 
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full"
-        >
-          {isSubmitting ? "Creating..." : "Create Workout Day"}
-        </Button>
-      </form>
-    </Form>
+                      {form.watch("exercises").includes(exercise.name) && (
+                        <div className="ml-6">
+                          <FormLabel className="text-xs">Progression Scheme</FormLabel>
+                          <Select
+                            onValueChange={(value) => handleProgressionSchemeChange(exercise.name, value as keyof typeof ProgressionScheme)}
+                            defaultValue="RETARDED_VOLUME"
+                            value={form.watch(`progressionSchemes.${exercise.name}.type`) || "RETARDED_VOLUME"}
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select progression type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="RETARDED_VOLUME">Retarded Volume</SelectItem>
+                              <SelectItem value="STRAIGHT_SETS">Straight Sets</SelectItem>
+                              <SelectItem value="REVERSE_PYRAMID">Reverse Pyramid</SelectItem>
+                              <SelectItem value="DOUBLE_PROGRESSION">Double Progression</SelectItem>
+                              <SelectItem value="RPT_INDEPENDENT">RPT Independent</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button 
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full"
+          >
+            {isSubmitting ? "Creating..." : "Create Workout Day"}
+          </Button>
+        </form>
+      </Form>
+    </>
   );
 }
