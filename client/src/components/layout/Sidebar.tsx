@@ -11,10 +11,10 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
-import { UserSection } from "./UserSection"; // Import UserSection
+import { UserSection } from "./UserSection";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -50,6 +50,10 @@ export default function Sidebar() {
             className="w-[280px] p-0 bg-sidebar border-r border-sidebar-border [&>button]:hidden"
           >
             <div className="flex h-full w-full flex-col bg-sidebar">
+              <SheetHeader className="px-4 py-4">
+                <SheetTitle className="text-xl font-bold text-sidebar-foreground">Navigation Menu</SheetTitle>
+                <SheetDescription>Access all features of Retard Strength</SheetDescription>
+              </SheetHeader>
               <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border bg-sidebar">
                 <h1 className="text-xl font-bold text-sidebar-foreground truncate">Retard Strength</h1>
                 <Button
