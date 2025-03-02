@@ -40,7 +40,8 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       bodyPart: exercise.bodyPart,
       setsRange: exercise.setsRange,
       repsRange: exercise.repsRange,
-      weightIncrement: exercise.weightIncrement.toString(),
+      weightIncrement: exercise.weightIncrement,
+      restTimer: exercise.restTimer,
       startingWeightType: exercise.startingWeightType,
       customStartingWeight: exercise.customStartingWeight?.toString()
     } : {
@@ -49,6 +50,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       setsRange: [3, 5],
       repsRange: [8, 12],
       weightIncrement: "2.5",
+      restTimer: 60,
       startingWeightType: "Barbell",
       customStartingWeight: ""
     },
@@ -56,10 +58,11 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
 
   const mutation = useMutation({
     mutationFn: async (data: InsertExercise) => {
+      console.log('Submitting exercise data:', data);
       if (exercise) {
-        await apiRequest('PATCH', `/api/exercises/${exercise.id}`, data);
+        return await apiRequest('PATCH', `/api/exercises/${exercise.id}`, data);
       } else {
-        await apiRequest('POST', '/api/exercises', data);
+        return await apiRequest('POST', '/api/exercises', data);
       }
     },
     onSuccess: () => {
@@ -67,19 +70,26 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       toast({ title: `Exercise ${exercise ? 'updated' : 'created'} successfully` });
       onSuccess?.();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error('Exercise mutation error:', error);
       toast({
         title: `Failed to ${exercise ? 'update' : 'create'} exercise`,
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive"
       });
     }
   });
 
+  const onSubmit = (data: InsertExercise) => {
+    console.log('Form submission:', data);
+    mutation.mutate(data);
+  };
+
   const startingWeightType = form.watch("startingWeightType") as StartingWeightType;
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -166,24 +176,35 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
 
         <FormField
           control={form.control}
-          name="startingWeightType"
+          name="weightIncrement"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Starting Weight Type</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select starting weight type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {Object.keys(STARTING_WEIGHTS).map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type} {type !== "Custom" && `(${STARTING_WEIGHTS[type as StartingWeightType]}kg)`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormLabel>Weight Increment (kg)</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  step="0.5"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="restTimer"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Rest Timer (seconds)</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  {...field}
+                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -208,26 +229,35 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
             )}
           />
         )}
-
         <FormField
           control={form.control}
-          name="weightIncrement"
+          name="startingWeightType"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Weight Increment (kg)</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  step="0.5"
-                  {...field}
-                />
-              </FormControl>
+              <FormLabel>Starting Weight Type</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select starting weight type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Object.keys(STARTING_WEIGHTS).map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type} {type !== "Custom" && `(${STARTING_WEIGHTS[type as StartingWeightType]}kg)`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
         />
-
-        <Button type="submit" className="w-full">
+        <Button 
+          type="submit" 
+          className="w-full"
+          disabled={mutation.isPending}
+        >
           {exercise ? 'Update' : 'Create'} Exercise
         </Button>
       </form>
