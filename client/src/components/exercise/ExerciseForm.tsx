@@ -5,13 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { exerciseSchema, type Exercise, type InsertExercise } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
@@ -31,13 +25,19 @@ const STARTING_WEIGHTS = {
 
 type StartingWeightType = keyof typeof STARTING_WEIGHTS;
 
+// Refine schema to require customStartingWeight when startingWeightType is "Custom"
+const enhancedExerciseSchema = exerciseSchema.refine(
+  (data) => data.startingWeightType !== "Custom" || (data.customStartingWeight != null),
+  { message: "Custom starting weight is required for Custom type", path: ["customStartingWeight"] }
+);
+
 export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
   const form = useForm<InsertExercise>({
-    resolver: zodResolver(exerciseSchema),
+    resolver: zodResolver(enhancedExerciseSchema),
     defaultValues: exercise ? {
       name: exercise.name,
       bodyPart: exercise.bodyPart,
@@ -56,7 +56,8 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
       restTimer: 60,
       startingWeightType: "Barbell",
       customStartingWeight: undefined
-    }
+    },
+    mode: "onChange" // Validate as user types
   });
 
   const mutation = useMutation({
@@ -66,15 +67,24 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
 
       const formattedData = {
         ...data,
-        setsRange: data.setsRange.map(Number),
-        repsRange: data.repsRange.map(Number),
+        setsRange: [Number(data.setsRange[0]), Number(data.setsRange[1])],
+        repsRange: [Number(data.repsRange[0]), Number(data.repsRange[1])],
         weightIncrement: Number(data.weightIncrement),
         restTimer: Number(data.restTimer),
         customStartingWeight: data.customStartingWeight ? Number(data.customStartingWeight) : undefined
       };
 
       console.log('Sending formatted data to server:', formattedData);
-      return await apiRequest('POST', '/api/exercises', formattedData);
+      const response = await apiRequest('POST', '/api/exercises', formattedData);
+      console.log('Server response:', response);
+      return response;
+    },
+    onSuccess: (data) => {
+      console.log('Exercise created successfully:', data);
+      queryClient.invalidateQueries({ queryKey: ['/api/exercises'] });
+      toast({ title: "Exercise created successfully" });
+      onSuccess?.();
+      form.reset();
     },
     onError: (error) => {
       console.error('Exercise mutation error:', error);
@@ -83,13 +93,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
         description: error instanceof Error ? error.message : "An unexpected error occurred",
         variant: "destructive"
       });
-    },
-    onSuccess: (data) => {
-      console.log('Exercise created successfully:', data);
-      queryClient.invalidateQueries({ queryKey: ['/api/exercises'] });
-      toast({ title: "Exercise created successfully" });
-      onSuccess?.();
-      form.reset();
     },
     onSettled: () => {
       setIsSubmitting(false);
@@ -148,8 +151,8 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
               <FormItem>
                 <FormLabel>Min Sets</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="number" 
+                  <Input
+                    type="number"
                     min={1}
                     {...field}
                     onChange={(e) => field.onChange(Number(e.target.value))}
@@ -166,7 +169,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
               <FormItem>
                 <FormLabel>Max Sets</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input
                     type="number"
                     min={1}
                     {...field}
@@ -187,7 +190,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
               <FormItem>
                 <FormLabel>Min Reps</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input
                     type="number"
                     min={1}
                     {...field}
@@ -205,7 +208,7 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
               <FormItem>
                 <FormLabel>Max Reps</FormLabel>
                 <FormControl>
-                  <Input 
+                  <Input
                     type="number"
                     min={1}
                     {...field}
@@ -312,7 +315,6 @@ export default function ExerciseForm({ exercise, onSuccess }: ExerciseFormProps)
             type="submit"
             className="w-full"
             disabled={isSubmitting || mutation.isPending}
-            onClick={() => console.log('Submit button clicked', form.formState)}
           >
             {isSubmitting ? "Creating..." : "Create Exercise"}
           </Button>
