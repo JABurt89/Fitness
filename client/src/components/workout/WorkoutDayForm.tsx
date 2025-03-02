@@ -23,11 +23,7 @@ interface WorkoutDayFormProps {
   onSuccess?: () => void;
 }
 
-export default function WorkoutDayForm({
-  exercises,
-  nextDayNumber,
-  onSuccess,
-}: WorkoutDayFormProps) {
+export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: WorkoutDayFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -43,20 +39,14 @@ export default function WorkoutDayForm({
 
   const createWorkoutDay = useMutation({
     mutationFn: async (data: InsertWorkoutDay) => {
-      console.log('Submitting workout day data:', data);
       const response = await apiRequest('POST', '/api/workout-days', data);
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create workout day');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create workout day');
       }
       return response.json();
     },
-    onMutate: () => {
-      console.log('Starting workout day creation...');
-      setIsSubmitting(true);
-    },
     onSuccess: () => {
-      console.log('Workout day created successfully');
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
       toast({ 
         title: "Success",
@@ -66,7 +56,6 @@ export default function WorkoutDayForm({
       onSuccess?.();
     },
     onError: (error: Error) => {
-      console.error('Workout day creation failed:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create workout day",
@@ -83,6 +72,25 @@ export default function WorkoutDayForm({
     let newScheme: ProgressionSettings;
 
     switch (schemeType) {
+      case "RETARDED_VOLUME":
+        newScheme = {
+          type: ProgressionScheme.RETARDED_VOLUME,
+          retardedVolume: {
+            baseWeight: 0,
+            targetSets: 4,
+            setVariations: [
+              { reps: 8, weightMultiplier: 1.0 },
+              { reps: 10, weightMultiplier: 0.9 },
+              { reps: 12, weightMultiplier: 0.85 },
+              { reps: 15, weightMultiplier: 0.8, isOptional: true }
+            ],
+            failureHandling: {
+              minRepsBeforeFailure: 6,
+              deloadPercentage: 0.10
+            }
+          }
+        };
+        break;
       case "STRAIGHT_SETS":
         newScheme = {
           type: ProgressionScheme.STRAIGHT_SETS,
@@ -139,23 +147,35 @@ export default function WorkoutDayForm({
   };
 
   const onSubmit = async (data: InsertWorkoutDay) => {
-    console.log('Form submission started with data:', data);
-
-    if (!data.exercises || data.exercises.length === 0) {
-      console.log('No exercises selected');
-      toast({
-        title: "Error",
-        description: "Please select at least one exercise",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
+      if (!data.exercises || data.exercises.length === 0) {
+        toast({
+          title: "Error",
+          description: "Please select at least one exercise",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Ensure each exercise has a progression scheme
+      const missingSchemes = data.exercises.filter(
+        exerciseName => !data.progressionSchemes[exerciseName]
+      );
+
+      if (missingSchemes.length > 0) {
+        toast({
+          title: "Error",
+          description: `Please select progression schemes for: ${missingSchemes.join(", ")}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
       setIsSubmitting(true);
       await createWorkoutDay.mutateAsync(data);
     } catch (error) {
       console.error('Form submission error:', error);
+      setIsSubmitting(false);
     }
   };
 
@@ -213,12 +233,13 @@ export default function WorkoutDayForm({
                         <FormLabel className="text-xs">Progression Scheme</FormLabel>
                         <Select
                           onValueChange={(value) => handleProgressionSchemeChange(exercise.name, value as keyof typeof ProgressionScheme)}
-                          defaultValue="STRAIGHT_SETS"
+                          defaultValue="RETARDED_VOLUME"
                         >
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select progression type" />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="RETARDED_VOLUME">Retarded Volume</SelectItem>
                             <SelectItem value="STRAIGHT_SETS">Straight Sets</SelectItem>
                             <SelectItem value="REVERSE_PYRAMID">Reverse Pyramid</SelectItem>
                             <SelectItem value="DOUBLE_PROGRESSION">Double Progression</SelectItem>
@@ -235,10 +256,10 @@ export default function WorkoutDayForm({
           )}
         />
 
-        <Button
+        <Button 
           type="submit"
-          className="w-full"
           disabled={isSubmitting}
+          className="w-full"
         >
           {isSubmitting ? "Creating..." : "Create Workout Day"}
         </Button>

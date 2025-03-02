@@ -8,6 +8,7 @@ export const ProgressionScheme = {
   REVERSE_PYRAMID: "REVERSE_PYRAMID",
   DOUBLE_PROGRESSION: "DOUBLE_PROGRESSION",
   RPT_INDEPENDENT: "RPT_INDEPENDENT",
+  RETARDED_VOLUME: "RETARDED_VOLUME"
 } as const;
 
 export type ProgressionSchemeType = typeof ProgressionScheme[keyof typeof ProgressionScheme];
@@ -42,12 +43,27 @@ export type RptIndependentSettings = {
   }>;
 };
 
+export type RetardedVolumeSettings = {
+  baseWeight: number;
+  targetSets: number;
+  setVariations: Array<{
+    reps: number;
+    weightMultiplier: number; // percentage of base weight
+    isOptional?: boolean;
+  }>;
+  failureHandling: {
+    minRepsBeforeFailure: number;
+    deloadPercentage: number;
+  };
+};
+
 export type ProgressionSettings = {
   type: ProgressionSchemeType;
   straightSets?: StraightSetsSettings;
   reversePyramid?: ReversePyramidSettings;
   doubleProgression?: DoubleProgressionSettings;
   rptIndependent?: RptIndependentSettings;
+  retardedVolume?: RetardedVolumeSettings;
 };
 
 // Table definitions
@@ -77,7 +93,8 @@ const progressionSettingsSchema = z.object({
     ProgressionScheme.STRAIGHT_SETS,
     ProgressionScheme.REVERSE_PYRAMID,
     ProgressionScheme.DOUBLE_PROGRESSION,
-    ProgressionScheme.RPT_INDEPENDENT
+    ProgressionScheme.RPT_INDEPENDENT,
+    ProgressionScheme.RETARDED_VOLUME
   ]),
   straightSets: z.object({
     targetSets: z.number().int().positive(),
@@ -87,7 +104,7 @@ const progressionSettingsSchema = z.object({
   reversePyramid: z.object({
     topSetWeight: z.number().positive(),
     topSetReps: z.number().int().positive(),
-    dropPercentage: z.number().min(0.05).max(0.15), // 5-15% drop
+    dropPercentage: z.number().min(0.05).max(0.15),
     backoffSets: z.number().int().positive()
   }).optional(),
   doubleProgression: z.object({
@@ -103,6 +120,19 @@ const progressionSettingsSchema = z.object({
       repRange: z.tuple([z.number().int(), z.number().int()]),
       weight: z.number().optional()
     }))
+  }).optional(),
+  retardedVolume: z.object({
+    baseWeight: z.number().positive(),
+    targetSets: z.number().int().positive(),
+    setVariations: z.array(z.object({
+      reps: z.number().int().positive(),
+      weightMultiplier: z.number().positive(),
+      isOptional: z.boolean().optional()
+    })).min(1),
+    failureHandling: z.object({
+      minRepsBeforeFailure: z.number().int().positive(),
+      deloadPercentage: z.number().min(0.05).max(0.20)
+    })
   }).optional()
 }).refine(
   (data) => {
@@ -115,8 +145,10 @@ const progressionSettingsSchema = z.object({
         return !!data.doubleProgression;
       case ProgressionScheme.RPT_INDEPENDENT:
         return !!data.rptIndependent;
+      case ProgressionScheme.RETARDED_VOLUME:
+        return !!data.retardedVolume;
       default:
-        return true;
+        return false;
     }
   },
   {
@@ -124,8 +156,8 @@ const progressionSettingsSchema = z.object({
   }
 );
 
-// Exercise schema
-const baseExerciseSchema = z.object({
+// Add exercise schema
+export const exerciseSchema = z.object({
   name: z.string().min(1, "Exercise name is required"),
   bodyPart: z.string().min(1, "Body part is required"),
   setsRange: z.tuple([
@@ -137,12 +169,10 @@ const baseExerciseSchema = z.object({
     z.number().int().min(1, "Maximum reps must be at least 1")
   ]).refine(([min, max]) => min <= max, "Minimum reps must be less than or equal to maximum reps"),
   weightIncrement: z.number().min(0.5, "Weight increment must be at least 0.5"),
-  restTimer: z.number().int().min(0, "Rest timer must be non-negative"),
+  restTimer: z.number().int().min(0, "Rest timer must be non-negative").default(60),
   startingWeightType: z.enum(["Barbell", "EZ Bar", "Dumbbell", "Smith Machine", "Custom"]),
   customStartingWeight: z.number().positive("Custom starting weight must be positive").optional(),
-});
-
-export const exerciseSchema = baseExerciseSchema.refine(
+}).refine(
   (data) => {
     if (data.startingWeightType === "Custom") {
       return data.customStartingWeight != null;
@@ -252,3 +282,4 @@ export type InsertWeightLog = z.infer<typeof weightLogSchema>;
 
 // Helper type for automatic entries
 export type AutomaticWorkoutLog = z.infer<typeof automaticWorkoutLogSchema>;
+export type InsertExercise = z.infer<typeof exerciseSchema>;
