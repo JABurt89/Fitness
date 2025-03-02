@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   ProgressionScheme,
   type ProgressionSettings
 } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface WorkoutDayFormProps {
   exercises: Exercise[];
@@ -29,9 +29,7 @@ export default function WorkoutDayForm({
   onSuccess,
 }: WorkoutDayFormProps) {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
 
   const form = useForm<InsertWorkoutDay>({
     resolver: zodResolver(workoutDaySchema),
@@ -45,43 +43,39 @@ export default function WorkoutDayForm({
 
   const createWorkoutDay = useMutation({
     mutationFn: async (data: InsertWorkoutDay) => {
-      return await apiRequest('POST', '/api/workout-days', data);
+      console.log('Submitting workout day data:', data);
+      const response = await apiRequest('POST', '/api/workout-days', data);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create workout day');
+      }
+      return response.json();
+    },
+    onMutate: () => {
+      console.log('Starting workout day creation...');
+      setIsSubmitting(true);
     },
     onSuccess: () => {
+      console.log('Workout day created successfully');
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
       toast({ 
         title: "Success",
-        description: "Workout day created successfully" 
+        description: "Workout day created successfully"
       });
       form.reset();
       onSuccess?.();
     },
-    onError: (error) => {
+    onError: (error: Error) => {
+      console.error('Workout day creation failed:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create workout day",
+        description: error.message || "Failed to create workout day",
         variant: "destructive"
       });
     },
     onSettled: () => {
       setIsSubmitting(false);
     }
-  });
-
-  const onSubmit = form.handleSubmit((data) => {
-    setIsSubmitting(true);
-
-    if (!data.exercises || data.exercises.length === 0) {
-      setIsSubmitting(false);
-      toast({
-        title: "Error",
-        description: "Please select at least one exercise",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    createWorkoutDay.mutate(data);
   });
 
   const handleProgressionSchemeChange = (exerciseName: string, schemeType: keyof typeof ProgressionScheme) => {
@@ -141,12 +135,33 @@ export default function WorkoutDayForm({
     form.setValue("progressionSchemes", {
       ...currentSchemes,
       [exerciseName]: newScheme
-    });
+    }, { shouldValidate: true });
+  };
+
+  const onSubmit = async (data: InsertWorkoutDay) => {
+    console.log('Form submission started with data:', data);
+
+    if (!data.exercises || data.exercises.length === 0) {
+      console.log('No exercises selected');
+      toast({
+        title: "Error",
+        description: "Please select at least one exercise",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await createWorkoutDay.mutateAsync(data);
+    } catch (error) {
+      console.error('Form submission error:', error);
+    }
   };
 
   return (
     <Form {...form}>
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="text-sm text-muted-foreground">
           Day #{nextDayNumber}
         </div>
@@ -186,9 +201,6 @@ export default function WorkoutDayForm({
                             shouldValidate: true,
                             shouldDirty: true
                           });
-                          if (checked) {
-                            setSelectedExercise(exercise.name);
-                          }
                         }}
                       />
                       <label className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
