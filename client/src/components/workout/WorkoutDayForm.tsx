@@ -177,6 +177,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
             console.log('Form submission started:', data);
 
             if (!data.exercises || data.exercises.length === 0) {
+              console.log('No exercises selected');
               toast({
                 title: "Error",
                 description: "Please select at least one exercise",
@@ -190,6 +191,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
             );
 
             if (missingSchemes.length > 0) {
+              console.error('Missing progression schemes for exercises:', missingSchemes);
               toast({
                 title: "Error",
                 description: `Please select progression schemes for: ${missingSchemes.join(", ")}`,
@@ -199,6 +201,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
             }
 
             try {
+              console.log('Validation passed, submitting data:', data);
               setIsSubmitting(true);
               await createWorkoutDay.mutateAsync(data);
             } catch (error) {
