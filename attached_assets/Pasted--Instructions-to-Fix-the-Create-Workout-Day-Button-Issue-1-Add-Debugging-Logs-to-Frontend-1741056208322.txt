@@ -1,0 +1,49 @@
+### Instructions to Fix the "Create Workout Day" Button Issue
+
+1. **Add Debugging Logs to Frontend:**
+   - Open `WorkoutDayForm.tsx` and modify the `onSubmit` function by adding these logs at the start:
+     ```tsx
+     console.log('Button clicked and form submitted!');
+     console.log('Form data:', data);
+     ```
+   - In the `createWorkoutDay` mutation function, add these logs inside the `mutationFn`:
+     ```tsx
+     console.log('API Response status:', response.status);
+     console.log('API Response body:', await response.text());
+     ```
+
+2. **Verify Form Submission:**
+   - Open your browser's developer tools (F12) and go to the Console tab.
+   - Click the "Create workout day" button and check if 'Button clicked and form submitted!' appears in the console.
+   - If it doesn’t, ensure the button is inside the form with `type="submit"`. For example:
+     ```tsx
+     <form onSubmit={handleSubmit(onSubmit)}>
+       <button type="submit">Create workout day</button>
+     </form>
+     ```
+
+3. **Check Form Data:**
+   - If the log appears, verify the 'Form data:' output. Ensure `data.exercises` has at least one exercise and `data.progressionSchemes` has entries for each exercise.
+   - If data is incomplete, check your form fields and how they’re bound (e.g., using React Hook Form).
+
+4. **Confirm Validation and Mutation:**
+   - Look for 'Validation passed, submitting data:' in the console to ensure validation succeeds.
+   - Check for 'Mutation starting with data:' to confirm the mutation is called.
+
+5. **Inspect API Request:**
+   - Switch to the Network tab in developer tools and look for a POST request to '/api/workout-days'.
+   - Verify the request payload matches your form data and check the response status (e.g., 200 for success, 400 for bad request).
+
+6. **Review Back-end Logs:**
+   - Check Replit’s server logs (accessible via the terminal or Replit console) for messages like 'POST /api/workout-days - Request body:'.
+   - Look for errors or confirmation that the workout day was created.
+
+7. **Verify Front-end Success Handling:**
+   - If the API call is successful (status 200), ensure a success toast appears and the form resets.
+   - Test the toast separately by adding a test button:
+     ```tsx
+     <button onClick={() => toast({ title: "Test", description: "This is a test" })}>Test Toast</button>
+     ```
+   - If the toast works but not on success, check if `createWorkoutDay.mutateAsync(data);` resolves correctly.
+
+By following these steps, you should identify where the process fails and fix the button issue. If needed, adjust your form setup or API handling based on the logs.

@@ -38,6 +38,9 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
     }
   });
 
+  console.log('Form state:', form.formState);
+  console.log('Current form values:', form.getValues());
+
   const createWorkoutDay = useMutation({
     mutationFn: async (data: InsertWorkoutDay) => {
       console.log('Mutation starting with data:', data);
@@ -94,6 +97,45 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
       }
     }
   });
+
+  const onSubmit = async (data: InsertWorkoutDay) => {
+    console.log('Button clicked and form submitted!');
+    console.log('Form data:', data);
+    console.log('Form state:', form.formState);
+
+    try {
+      if (!data.exercises || data.exercises.length === 0) {
+        console.error('No exercises selected');
+        toast({
+          title: "Error",
+          description: "Please select at least one exercise",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const missingSchemes = data.exercises.filter(
+        exerciseName => !data.progressionSchemes[exerciseName]
+      );
+
+      if (missingSchemes.length > 0) {
+        console.error('Missing progression schemes for exercises:', missingSchemes);
+        toast({
+          title: "Error",
+          description: `Please select progression schemes for: ${missingSchemes.join(", ")}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Validation passed, submitting data:', data);
+      setIsSubmitting(true);
+      await createWorkoutDay.mutateAsync(data);
+    } catch (error) {
+      console.error('Form submission error:', error);
+      setIsSubmitting(false);
+    }
+  };
 
   const handleProgressionSchemeChange = (exerciseName: string, schemeType: keyof typeof ProgressionScheme) => {
     console.log('Changing progression scheme:', { exerciseName, schemeType });
@@ -159,44 +201,6 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
       ...currentSchemes,
       [exerciseName]: newScheme
     }, { shouldValidate: true });
-  };
-
-  const onSubmit = async (data: InsertWorkoutDay) => {
-    console.log('Form submission started with data:', data);
-
-    try {
-      if (!data.exercises || data.exercises.length === 0) {
-        console.error('No exercises selected');
-        toast({
-          title: "Error",
-          description: "Please select at least one exercise",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Ensure each exercise has a progression scheme
-      const missingSchemes = data.exercises.filter(
-        exerciseName => !data.progressionSchemes[exerciseName]
-      );
-
-      if (missingSchemes.length > 0) {
-        console.error('Missing progression schemes for exercises:', missingSchemes);
-        toast({
-          title: "Error",
-          description: `Please select progression schemes for: ${missingSchemes.join(", ")}`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Validation passed, submitting data:', data);
-      setIsSubmitting(true);
-      await createWorkoutDay.mutateAsync(data);
-    } catch (error) {
-      console.error('Form submission error:', error);
-      setIsSubmitting(false);
-    }
   };
 
   return (
@@ -270,7 +274,10 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
                         <div className="ml-6">
                           <FormLabel className="text-xs">Progression Scheme</FormLabel>
                           <Select
-                            onValueChange={(value) => handleProgressionSchemeChange(exercise.name, value as keyof typeof ProgressionScheme)}
+                            onValueChange={(value) => {
+                              console.log('Progression scheme changed:', { exercise: exercise.name, value });
+                              handleProgressionSchemeChange(exercise.name, value as keyof typeof ProgressionScheme);
+                            }}
                             defaultValue="RETARDED_VOLUME"
                             value={form.watch(`progressionSchemes.${exercise.name}.type`) || "RETARDED_VOLUME"}
                           >
@@ -299,6 +306,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
             type="submit"
             disabled={isSubmitting}
             className="w-full"
+            onClick={() => console.log('Create button clicked')}
           >
             {isSubmitting ? "Creating..." : "Create Workout Day"}
           </Button>
