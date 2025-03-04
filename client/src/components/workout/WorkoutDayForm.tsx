@@ -19,18 +19,32 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface WorkoutDayFormProps {
+  workoutDay: {
+    id: number;
+    userId: number;
+    dayName: string;
+    exercises: string[];
+    displayOrder: number;
+    lastCompleted: Date | null;
+    progressionSchemes: Record<string, ProgressionSettings>;
+  } | null;
   exercises: Exercise[];
   nextDayNumber: number;
   onSuccess?: () => void;
 }
 
-export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: WorkoutDayFormProps) {
+export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess, workoutDay }: WorkoutDayFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<InsertWorkoutDay>({
     resolver: zodResolver(workoutDaySchema),
-    defaultValues: {
+    defaultValues: workoutDay ? {
+      dayName: workoutDay.dayName,
+      exercises: workoutDay.exercises,
+      displayOrder: workoutDay.displayOrder,
+      progressionSchemes: workoutDay.progressionSchemes
+    } : {
       dayName: `Day ${nextDayNumber}`,
       exercises: [],
       displayOrder: nextDayNumber - 1,
@@ -41,7 +55,11 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
   const createWorkoutDay = useMutation({
     mutationFn: async (data: InsertWorkoutDay) => {
       console.log('Starting mutation with data:', data);
-      const response = await apiRequest('POST', '/api/workout-days', data);
+      const response = await apiRequest(
+        workoutDay ? 'PATCH' : 'POST',
+        workoutDay ? `/api/workout-days/${workoutDay.id}` : '/api/workout-days',
+        data
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -54,7 +72,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
       toast({ 
         title: "Success",
-        description: "Workout day created successfully"
+        description: `Workout day ${workoutDay ? 'updated' : 'created'} successfully`
       });
       form.reset();
       onSuccess?.();
@@ -62,7 +80,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create workout day",
+        description: error.message || `Failed to ${workoutDay ? 'update' : 'create'} workout day`,
         variant: "destructive"
       });
     },
@@ -157,7 +175,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
 
   return (
     <>
-      <DialogTitle>Create Workout Day</DialogTitle>
+      <DialogTitle>{workoutDay ? 'Edit' : 'Create'} Workout Day</DialogTitle>
       <DialogDescription>
         Configure your workout day by selecting exercises and their progression schemes.
       </DialogDescription>
@@ -258,7 +276,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
             disabled={isSubmitting}
             className="w-full"
           >
-            {isSubmitting ? "Creating..." : "Create Workout Day"}
+            {isSubmitting ? "Creating..." : `${workoutDay ? 'Update' : 'Create'} Workout Day`}
           </Button>
         </form>
       </Form>
