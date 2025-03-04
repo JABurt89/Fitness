@@ -148,6 +148,7 @@ export default function WorkoutDayForm({ workoutDay, exercises, nextDayNumber, o
 
     try {
       if (!data.exercises || data.exercises.length === 0) {
+        console.log('Form validation failed: No exercises selected');
         toast({
           title: "Error",
           description: "Please select at least one exercise",
@@ -157,7 +158,25 @@ export default function WorkoutDayForm({ workoutDay, exercises, nextDayNumber, o
       }
 
       setIsSubmitting(true);
-      await createWorkoutDay.mutateAsync(data);
+      console.log('Submitting workout day data:', {
+        ...data,
+        progressionSchemes: Object.fromEntries(
+          data.exercises.map(exercise => [
+            exercise,
+            data.progressionSchemes[exercise] || getDefaultProgressionScheme()
+          ])
+        )
+      });
+
+      await createWorkoutDay.mutateAsync({
+        ...data,
+        progressionSchemes: Object.fromEntries(
+          data.exercises.map(exercise => [
+            exercise,
+            data.progressionSchemes[exercise] || getDefaultProgressionScheme()
+          ])
+        )
+      });
     } catch (error) {
       console.error('Form submission error:', error);
       setIsSubmitting(false);

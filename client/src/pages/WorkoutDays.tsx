@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger, DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Edit, Trash2, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import WorkoutDayForm from "@/components/workout/WorkoutDayForm";
@@ -179,6 +179,12 @@ export default function WorkoutDays() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
+              <DialogTitle>
+                {selectedDay ? 'Edit Workout Day' : 'Create New Workout Day'}
+              </DialogTitle>
+              <DialogDescription>
+                Configure your workout day by selecting exercises and their progression schemes.
+              </DialogDescription>
               <WorkoutDayForm
                 workoutDay={selectedDay}
                 exercises={exercises || []}
