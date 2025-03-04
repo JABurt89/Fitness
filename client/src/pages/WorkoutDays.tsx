@@ -4,17 +4,101 @@ import { queryClient } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTrigger, DialogHeader } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import WorkoutDayForm from "@/components/workout/WorkoutDayForm";
 import type { WorkoutDay, Exercise } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+interface SortableWorkoutDayProps {
+  day: WorkoutDay;
+  index: number;
+  onEdit: (day: WorkoutDay) => void;
+  onDelete: (id: number) => void;
+}
+
+function SortableWorkoutDay({ day, index, onEdit, onDelete }: SortableWorkoutDayProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: day.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="cursor-grab">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex justify-between items-start mb-4">
+            <div className="flex items-center gap-2">
+              <div {...attributes} {...listeners}>
+                <GripVertical className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Day #{index + 1}</div>
+                <h3 className="text-lg font-semibold">{day.dayName}</h3>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onEdit(day)}
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDelete(day.id)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {day.exercises.join(", ")}
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 export default function WorkoutDays() {
   const { toast } = useToast();
   const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const { data: workoutDays, isLoading: loadingDays } = useQuery<WorkoutDay[]>({
     queryKey: ['/api/workout-days']
@@ -56,22 +140,28 @@ export default function WorkoutDays() {
     }
   });
 
-  const handleDragEnd = (result: any) => {
-    if (!result.destination || !workoutDays) return;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
 
-    const items = Array.from(workoutDays);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
+    if (!over || !workoutDays) return;
 
-    const updates = items.map((item, index) => ({
-      id: item.id,
-      displayOrder: index
-    }));
+    if (active.id !== over.id) {
+      const oldIndex = workoutDays.findIndex((day) => day.id === active.id);
+      const newIndex = workoutDays.findIndex((day) => day.id === over.id);
 
-    reorderWorkouts.mutate(updates);
+      const newOrder = arrayMove(workoutDays, oldIndex, newIndex);
+      const updates = newOrder.map((item, index) => ({
+        id: item.id,
+        displayOrder: index
+      }));
+
+      reorderWorkouts.mutate(updates);
+    }
   };
 
-  if (loadingDays || loadingExercises) return <div>Loading...</div>;
+  if (loadingDays || loadingExercises) {
+    return <div>Loading...</div>;
+  }
 
   const sortedWorkouts = workoutDays?.sort((a, b) => 
     (a.displayOrder ?? 0) - (b.displayOrder ?? 0)
@@ -90,7 +180,7 @@ export default function WorkoutDays() {
           <DialogContent>
             <DialogHeader>
               <WorkoutDayForm
-                workoutDay={selectedDay}
+                initialData={selectedDay}
                 exercises={exercises || []}
                 nextDayNumber={sortedWorkouts.length + 1}
                 onSuccess={() => setIsOpen(false)}
@@ -100,67 +190,31 @@ export default function WorkoutDays() {
         </Dialog>
       </div>
 
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="workout-days">
-          {(provided) => (
-            <div 
-              className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-            >
-              {sortedWorkouts.map((day, index) => (
-                <Draggable 
-                  key={day.id} 
-                  draggableId={day.id.toString()} 
-                  index={index}
-                >
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      {...provided.dragHandleProps}
-                    >
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="flex justify-between items-start mb-4">
-                            <div>
-                              <div className="text-sm text-muted-foreground">Day #{index + 1}</div>
-                              <h3 className="text-lg font-semibold">{day.dayName}</h3>
-                            </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setSelectedDay(day);
-                                  setIsOpen(true);
-                                }}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => deleteWorkoutDay.mutate(day.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {day.exercises.join(", ")}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="grid gap-4">
+          <SortableContext
+            items={sortedWorkouts.map(day => day.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {sortedWorkouts.map((day, index) => (
+              <SortableWorkoutDay
+                key={day.id}
+                day={day}
+                index={index}
+                onEdit={(day) => {
+                  setSelectedDay(day);
+                  setIsOpen(true);
+                }}
+                onDelete={(id) => deleteWorkoutDay.mutate(id)}
+              />
+            ))}
+          </SortableContext>
+        </div>
+      </DndContext>
     </div>
   );
 }
