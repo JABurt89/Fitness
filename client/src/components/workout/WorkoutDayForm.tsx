@@ -38,7 +38,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
     }
   });
 
-  console.log('Form state:', form.formState);
+  console.log('Current form state:', form.formState);
   console.log('Current form values:', form.getValues());
 
   const createWorkoutDay = useMutation({
@@ -75,7 +75,6 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
       });
     },
     onSettled: () => {
-      console.log('Mutation settled, resetting submit state');
       setIsSubmitting(false);
     }
   });
@@ -165,11 +164,11 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
   };
 
   const onSubmit = async (data: InsertWorkoutDay) => {
-    console.log('Form submission started:', data);
+    console.log('Form submission started with data:', data);
 
     try {
       if (!data.exercises || data.exercises.length === 0) {
-        console.log('No exercises selected');
+        console.error('No exercises selected');
         toast({
           title: "Error",
           description: "Please select at least one exercise",
@@ -209,7 +208,10 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
       </DialogDescription>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit((data) => {
+          console.log('Form handleSubmit triggered with data:', data);
+          onSubmit(data);
+        })} className="space-y-6">
           <div className="text-sm text-muted-foreground">
             Day #{nextDayNumber}
           </div>
@@ -304,6 +306,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
             type="submit"
             disabled={isSubmitting}
             className="w-full"
+            onClick={() => console.log('Submit button clicked')}
           >
             {isSubmitting ? "Creating..." : "Create Workout Day"}
           </Button>
