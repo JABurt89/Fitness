@@ -33,7 +33,7 @@ interface WorkoutDayFormProps {
   onSuccess?: () => void;
 }
 
-export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess, workoutDay }: WorkoutDayFormProps) {
+export default function WorkoutDayForm({ workoutDay, exercises, nextDayNumber, onSuccess }: WorkoutDayFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -54,19 +54,25 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess, wo
 
   const createWorkoutDay = useMutation({
     mutationFn: async (data: InsertWorkoutDay) => {
-      console.log('Starting mutation with data:', data);
-      const response = await apiRequest(
-        workoutDay ? 'PATCH' : 'POST',
-        workoutDay ? `/api/workout-days/${workoutDay.id}` : '/api/workout-days',
-        data
-      );
+      try {
+        console.log('Starting mutation with data:', data);
+        const response = await apiRequest(
+          workoutDay ? 'PATCH' : 'POST',
+          workoutDay ? `/api/workout-days/${workoutDay.id}` : '/api/workout-days',
+          data
+        );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create workout day');
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('API Error:', errorData);
+          throw new Error(errorData.message || 'Failed to save workout day');
+        }
+
+        return response.json();
+      } catch (error) {
+        console.error('Mutation error:', error);
+        throw error;
       }
-
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/workout-days'] });
@@ -78,6 +84,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess, wo
       onSuccess?.();
     },
     onError: (error: Error) => {
+      console.error('Form submission error:', error);
       toast({
         title: "Error",
         description: error.message || `Failed to ${workoutDay ? 'update' : 'create'} workout day`,
@@ -140,7 +147,6 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess, wo
     console.log('Form submission triggered with data:', data);
 
     try {
-      // Validate exercises are selected
       if (!data.exercises || data.exercises.length === 0) {
         toast({
           title: "Error",
@@ -150,21 +156,6 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess, wo
         return;
       }
 
-      // Validate progression schemes
-      const missingSchemes = data.exercises.filter(
-        exerciseName => !data.progressionSchemes[exerciseName]
-      );
-
-      if (missingSchemes.length > 0) {
-        toast({
-          title: "Error",
-          description: `Please select progression schemes for: ${missingSchemes.join(", ")}`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Submit form
       setIsSubmitting(true);
       await createWorkoutDay.mutateAsync(data);
     } catch (error) {

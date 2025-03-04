@@ -197,6 +197,7 @@ export const workoutDays = pgTable("workout_days", {
 });
 
 export const workoutDaySchema = z.object({
+  userId: z.number().optional(), // Made optional since it will be injected by the server
   dayName: z.string().min(1, "Day name is required"),
   exercises: z.array(z.string()).min(1, "Select at least one exercise"),
   displayOrder: z.number().int().min(0).default(0),
@@ -282,4 +283,3 @@ export type InsertWeightLog = z.infer<typeof weightLogSchema>;
 
 // Helper type for automatic entries
 export type AutomaticWorkoutLog = z.infer<typeof automaticWorkoutLogSchema>;
-export type InsertExercise = z.infer<typeof exerciseSchema>;
