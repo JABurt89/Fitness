@@ -98,51 +98,15 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
     }
   });
 
-  const onSubmit = async (data: InsertWorkoutDay) => {
-    console.log('Button clicked and form submitted!');
-    console.log('Form data:', data);
-    console.log('Form state:', form.formState);
-
-    try {
-      if (!data.exercises || data.exercises.length === 0) {
-        console.error('No exercises selected');
-        toast({
-          title: "Error",
-          description: "Please select at least one exercise",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const missingSchemes = data.exercises.filter(
-        exerciseName => !data.progressionSchemes[exerciseName]
-      );
-
-      if (missingSchemes.length > 0) {
-        console.error('Missing progression schemes for exercises:', missingSchemes);
-        toast({
-          title: "Error",
-          description: `Please select progression schemes for: ${missingSchemes.join(", ")}`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('Validation passed, submitting data:', data);
-      setIsSubmitting(true);
-      await createWorkoutDay.mutateAsync(data);
-    } catch (error) {
-      console.error('Form submission error:', error);
-      setIsSubmitting(false);
-    }
-  };
-
   const handleProgressionSchemeChange = (exerciseName: string, schemeType: keyof typeof ProgressionScheme) => {
     console.log('Changing progression scheme:', { exerciseName, schemeType });
     const currentSchemes = form.getValues("progressionSchemes") || {};
     let newScheme: ProgressionSettings;
 
     switch (schemeType) {
+      case "RETARDED_VOLUME":
+        newScheme = getDefaultProgressionScheme();
+        break;
       case "STRAIGHT_SETS":
         newScheme = {
           type: ProgressionScheme.STRAIGHT_SETS,
@@ -188,9 +152,6 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
           }
         };
         break;
-      case "RETARDED_VOLUME":
-        newScheme = getDefaultProgressionScheme();
-        break;
       default:
         console.error('Unknown progression scheme type:', schemeType);
         return;
@@ -211,7 +172,42 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
       </DialogDescription>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form 
+          onSubmit={form.handleSubmit(async (data) => {
+            console.log('Form submission started:', data);
+
+            if (!data.exercises || data.exercises.length === 0) {
+              toast({
+                title: "Error",
+                description: "Please select at least one exercise",
+                variant: "destructive"
+              });
+              return;
+            }
+
+            const missingSchemes = data.exercises.filter(
+              exerciseName => !data.progressionSchemes[exerciseName]
+            );
+
+            if (missingSchemes.length > 0) {
+              toast({
+                title: "Error",
+                description: `Please select progression schemes for: ${missingSchemes.join(", ")}`,
+                variant: "destructive"
+              });
+              return;
+            }
+
+            try {
+              setIsSubmitting(true);
+              await createWorkoutDay.mutateAsync(data);
+            } catch (error) {
+              console.error('Form submission error:', error);
+              setIsSubmitting(false);
+            }
+          })} 
+          className="space-y-6"
+        >
           <div className="text-sm text-muted-foreground">
             Day #{nextDayNumber}
           </div>
@@ -306,7 +302,6 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
             type="submit"
             disabled={isSubmitting}
             className="w-full"
-            onClick={() => console.log('Create button clicked')}
           >
             {isSubmitting ? "Creating..." : "Create Workout Day"}
           </Button>

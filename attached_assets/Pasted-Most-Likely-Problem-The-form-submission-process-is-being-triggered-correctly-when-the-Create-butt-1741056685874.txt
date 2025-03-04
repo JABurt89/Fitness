@@ -1,0 +1,46 @@
+Most Likely Problem
+The form submission process is being triggered correctly when the "Create" button is clicked, but it stops prematurely without making an API call or showing any error messages. The issue most likely stems from validation failing silently in the onSubmit function. Specifically, the problem appears to be related to the progression scheme for the selected exercise:
+At least one exercise is selected (as indicated by logs showing exercises: Array(1)), which should satisfy any "at least one exercise" requirement.
+
+However, the progression scheme (e.g., reps, sets) tied to the selected exercise might be incomplete or missing required fields. For example, while the scheme is initialized when an exercise is selected (e.g., "Initializing progression scheme for: Barbell Shoulder Press"), it may not include all necessary properties, causing the validation logic to reject the submission without logging the specific failure reason.
+This silent failure—where the process halts without proceeding to the API call or notifying the user—suggests that the validation check for progression schemes is not being met, and the code exits early.
+Most Effective Resolution
+To address this issue and ensure the form submission works as intended, I recommend the following steps:
+Fully Initialize Progression Schemes:
+When an exercise is selected (e.g., via a checkbox), ensure its progression scheme is populated with all required fields, such as reps and sets. For instance:
+tsx
+// Example: When an exercise is selected
+setProgressionSchemes((prev) => ({
+  ...prev,
+  [selectedExercise]: { reps: 10, sets: 3 }, // Default values
+}));
+This prevents the scheme from being initialized as an empty or partial object, which could fail validation.
+Add Detailed Validation Logging:
+Update the onSubmit function to log specific validation failures, making it easier to pinpoint the issue:
+tsx
+const onSubmit = (data) => {
+  console.log("Form data:", data);
+  if (!data.exercises || data.exercises.length === 0) {
+    console.log("Validation failed: No exercises selected");
+    return;
+  }
+  const missingSchemes = data.exercises.filter(
+    (exercise) => !data.progressionSchemes[exercise] || 
+                  !data.progressionSchemes[exercise].reps || 
+                  !data.progressionSchemes[exercise].sets
+  );
+  if (missingSchemes.length > 0) {
+    console.log("Validation failed: Missing or incomplete schemes for", missingSchemes);
+    return;
+  }
+  console.log("Validation passed, proceeding to API call");
+  // Proceed with API call or mutation
+};
+Provide User Feedback:
+Add a notification mechanism (e.g., toast messages) to inform the user why the submission failed, improving usability:
+tsx
+if (missingSchemes.length > 0) {
+  toast.error(`Please complete progression schemes for: ${missingSchemes.join(", ")}`);
+  return;
+}
+
