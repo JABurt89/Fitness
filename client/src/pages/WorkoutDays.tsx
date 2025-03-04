@@ -180,10 +180,13 @@ export default function WorkoutDays() {
           <DialogContent>
             <DialogHeader>
               <WorkoutDayForm
-                initialData={selectedDay}
+                workoutDay={selectedDay}
                 exercises={exercises || []}
                 nextDayNumber={sortedWorkouts.length + 1}
-                onSuccess={() => setIsOpen(false)}
+                onSuccess={() => {
+                  setIsOpen(false);
+                  setSelectedDay(null);
+                }}
               />
             </DialogHeader>
           </DialogContent>
