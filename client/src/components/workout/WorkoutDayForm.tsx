@@ -164,6 +164,43 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
     }, { shouldValidate: true });
   };
 
+  const onSubmit = async (data: InsertWorkoutDay) => {
+    console.log('Form submission started:', data);
+
+    try {
+      if (!data.exercises || data.exercises.length === 0) {
+        console.log('No exercises selected');
+        toast({
+          title: "Error",
+          description: "Please select at least one exercise",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const missingSchemes = data.exercises.filter(
+        exerciseName => !data.progressionSchemes[exerciseName]
+      );
+
+      if (missingSchemes.length > 0) {
+        console.error('Missing progression schemes for exercises:', missingSchemes);
+        toast({
+          title: "Error",
+          description: `Please select progression schemes for: ${missingSchemes.join(", ")}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('Validation passed, submitting data:', data);
+      setIsSubmitting(true);
+      await createWorkoutDay.mutateAsync(data);
+    } catch (error) {
+      console.error('Form submission error:', error);
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <>
       <DialogTitle>Create Workout Day</DialogTitle>
@@ -172,45 +209,7 @@ export default function WorkoutDayForm({ exercises, nextDayNumber, onSuccess }: 
       </DialogDescription>
 
       <Form {...form}>
-        <form 
-          onSubmit={form.handleSubmit(async (data) => {
-            console.log('Form submission started:', data);
-
-            if (!data.exercises || data.exercises.length === 0) {
-              console.log('No exercises selected');
-              toast({
-                title: "Error",
-                description: "Please select at least one exercise",
-                variant: "destructive"
-              });
-              return;
-            }
-
-            const missingSchemes = data.exercises.filter(
-              exerciseName => !data.progressionSchemes[exerciseName]
-            );
-
-            if (missingSchemes.length > 0) {
-              console.error('Missing progression schemes for exercises:', missingSchemes);
-              toast({
-                title: "Error",
-                description: `Please select progression schemes for: ${missingSchemes.join(", ")}`,
-                variant: "destructive"
-              });
-              return;
-            }
-
-            try {
-              console.log('Validation passed, submitting data:', data);
-              setIsSubmitting(true);
-              await createWorkoutDay.mutateAsync(data);
-            } catch (error) {
-              console.error('Form submission error:', error);
-              setIsSubmitting(false);
-            }
-          })} 
-          className="space-y-6"
-        >
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="text-sm text-muted-foreground">
             Day #{nextDayNumber}
           </div>
